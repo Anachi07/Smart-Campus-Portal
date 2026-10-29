@@ -57,6 +57,9 @@ anon=client();_,body=request(anon,'/sims/register.php')
 status(anon,'/sims/register.php',403,{'csrf':token(body),'role':'Teacher','username':'badteacher','full_name':'Bad Teacher','email':'bad@example.test','password':'TestPassword123!','confirm_password':'TestPassword123!'})
 newname='qa_'+uuid.uuid4().hex[:10];password='StudentPassword123!'
 post(anon,'/sims/register.php',{'full_name':'QA Student','username':newname,'email':newname+'@example.test','password':password,'confirm_password':password})
+pending_id=rows(backup(admin),'SELECT id FROM users WHERE username=?',(newname,))[0][0]
+url,body=post(anon,'/sims/login.php',{'username':newname,'password':password});assert not url.endswith('/portal')
+post(admin,'/sims/modules/admin/manage.php?entity=users',{'action':'approve','id':pending_id})
 newstudent=login(newname,password)
 _,body=request(newstudent,'/sims/modules/student/grades.php');assert 'Juan Dela Cruz' not in body
 _,report=request(newstudent,'/sims/modules/shared/reports.php?export=csv');assert '2024-0001' not in report and '2024-0002' not in report
@@ -81,7 +84,7 @@ archive=backup(admin);uid=rows(archive,'SELECT id FROM users WHERE username="qa_
 assert rows(archive,'SELECT id FROM teachers WHERE user_id=?',(uid,))
 adminid=rows(archive,'SELECT id FROM users WHERE username="ADMIN"')[0][0]
 _,body=post(admin,'/sims/modules/admin/manage.php?entity=users',{'action':'delete','id':adminid})
-assert 'administrator' in body.lower() and rows(backup(admin),'SELECT id FROM users WHERE id=?',(adminid,))
+assert 'super admin' in body.lower() and rows(backup(admin),'SELECT id FROM users WHERE id=?',(adminid,))
 print('PASS validated account CRUD, linked staff profile creation, and last-admin protection')
 # Grades are validated, saved, and reflected in scoped reports.
 _,body=post(admin,'/sims/modules/teacher/grades.php',{'student_id':2,'subject_id':1,'prelim':120,'midterm':90,'final':90})

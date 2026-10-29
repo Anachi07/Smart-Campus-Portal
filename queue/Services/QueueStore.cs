@@ -27,7 +27,7 @@ public partial class QueueStore
             phone = NormalizePhone(phone);
             var username = $"campus:{campusId}";
             var user = _data.Users.FirstOrDefault(u => u.Username == username);
-            var role = campusRole == "Admin" ? "Admin" : "Customer";
+            var role = campusRole is "Admin" or "Super Admin" ? "Admin" : "Customer";
             if (user == null)
             {
                 user = new User { Id = NextId(_data.Users.Select(u => u.Id)), Username = username,
@@ -906,6 +906,7 @@ public partial class QueueStore
                     loaded.Users ??= new List<User>();
                     loaded.Tickets ??= new List<Ticket>();
                     loaded.Counters ??= new List<Counter>();
+                    loaded.VisitExchanges ??= new();
                     loaded.SmsNotifications ??= new List<SmsNotification>();
                     loaded.AccountNotifications ??= new List<AccountNotification>();
                     loaded.ActivityLogs ??= new List<ActivityLog>();

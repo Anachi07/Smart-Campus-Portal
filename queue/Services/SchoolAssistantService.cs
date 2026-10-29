@@ -45,7 +45,7 @@ public class SchoolAssistantService
         var s=text.ToLowerInvariant();
         return s.Contains("tuition")?"Tuition Payment":Regex.IsMatch(s,"document|certificate|registrar|dokumento|good moral|transcript")?"Document Request":Regex.IsMatch(s,"fee|cashier|bayad|payment")?"School Fees":null;
     }
-    public static bool SchedulingIntent(string text)=>Regex.IsMatch(text.ToLowerInvariant(),@"\bbook\b|booking|reserve|appointment|pa.?schedule|mag.?schedule|best time|pinaka.*oras|available.*oras|schedule.*queue|schedule.*pila|pila.*schedule");
+    public static bool SchedulingIntent(string text)=>Regex.IsMatch(text.ToLowerInvariant(),@"\bbook\b|booking|reserve|appointment|pa.?schedule|mag.?schedule|best time|pinaka.*oras|available.*oras|reschedule|change.*schedule|change.*visit|palit|swap|exchange.*time|baguh.*schedule|schedule.*queue|schedule.*pila|pila.*schedule");
 
     public static bool SensitiveMessage(string text)=>Regex.IsMatch(text,@"(?:password|api[ _-]?key|access[ _-]?token)\s*(?:is|ay|:|=)\s*\S+|sk-[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{20,}",RegexOptions.IgnoreCase);
     private static bool NumbersGrounded(string answer,IEnumerable<SchoolFaq> sources) {
@@ -57,7 +57,7 @@ public class SchoolAssistantService
     {
         var hint=ServiceHint(chat.Message);
         if(SensitiveMessage(chat.Message)||chat.History.Any(h=>SensitiveMessage(h.Content)))return new("Please do not send passwords, access tokens, or payment credentials. Use My profile to change a password, or ask your school administrator for account help.","guide",new(),false,null);
-        if(SchedulingIntent(chat.Message))return new("I can help you find a suitable Registrar or Cashier visit time. Choose your transaction, review available times, then confirm. Nothing is booked until you confirm.","workflow",new(),true,hint);
+        if(SchedulingIntent(chat.Message))return new("I can help you book a visit, change an upcoming reservation when a time is available, or request a voluntary time exchange. Open My requests to manage an existing visit. An exchange keeps both original times until the other holder accepts, and both schedules are checked again. Nothing changes from chat alone.","workflow",new(),true,hint);
         var relevant=Relevant(chat.Message,knowledge.Faqs??new());
         if(relevant.Count==0)return new("I don't have approved school information for that question yet. Please ask the responsible school office or administrator. You can also ask me about portal services or plan a Registrar/Cashier visit.","guide",new(),false,hint);
         var fallback=new AssistantReply(string.Join("\n\n",relevant.Take(1).Select(f=>f.Answer)),"guide",relevant.Take(1).ToList(),false,hint);

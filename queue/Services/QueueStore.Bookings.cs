@@ -16,7 +16,7 @@ public partial class QueueStore
             TimeSpan.TryParse(c.Start,CultureInfo.InvariantCulture,out var from) && TimeSpan.TryParse(c.End,CultureInfo.InvariantCulture,out var to) && start<to && end>from);
     }
 
-    private List<BookingSlot> SlotsLocked(string service, DateOnly? date, int userId, List<CampusClass> classes)
+    private List<BookingSlot> SlotsLocked(string service, DateOnly? date, int userId, List<CampusClass> classes, HashSet<string>? exclude = null)
     {
         if(!_data.Settings.EnableAppointments || !CampusServices.RequestTypes.ContainsKey(service)) return new();
         if(!_data.Counters.Any(c => c.Office==CampusServices.OfficeFor(service) || c.Office=="All Services")) return new();
@@ -31,7 +31,7 @@ public partial class QueueStore
                 var local=day.ToDateTime(TimeOnly.MinValue).AddMinutes(minute);
                 var at=new DateTimeOffset(local,CampusZone.GetUtcOffset(local));
                 if(at<now.AddHours(1) || ConflictsWithClass(at,service,classes)) continue;
-                var active=_data.Tickets.Where(t => t.ScheduledAt.HasValue && (t.Status is "Scheduled" or "Waiting" or "Now Serving")).ToList();
+                var active=_data.Tickets.Where(t => t.ScheduledAt.HasValue && !(exclude?.Contains(t.TicketNumber)??false) && (t.Status is "Scheduled" or "Waiting" or "Now Serving")).ToList();
                 if(active.Any(t => t.CustomerUserId==userId && Math.Abs((t.ScheduledAt!.Value-at).TotalMinutes)<step)) continue;
                 var occupied=active.Count(t => t.Office==CampusServices.OfficeFor(service) && t.ScheduledAt==at);
                 if(occupied>=capacity) continue;
@@ -75,6 +75,7 @@ public partial class QueueStore
             if(ticket.Status=="Waiting" && ticket.CheckedInAt.HasValue) return(true,"You are already checked in.");
             var now=CampusNow;
             if(ticket.Status!="Scheduled" || !ticket.ScheduledAt.HasValue || now<ticket.ScheduledAt.Value.AddMinutes(-15) || now>ticket.ScheduledAt.Value.AddMinutes(30)) return(false,"Check in from 15 minutes before until 30 minutes after your reserved time.");
+            InvalidateExchangesLocked(ticket.TicketNumber);
             ticket.Status="Waiting";ticket.CheckedInAt=now.DateTime;RefreshQueuePredictionsLocked();
             AddLog("Appointment check-in",$"{ticket.TicketNumber} joined the {ticket.Office} queue.");Save();return(true,"You are checked in. Watch your ticket for the counter call.");
         }
@@ -87,6 +88,7 @@ public partial class QueueStore
             if(ticket==null)return(false,"Booking not found.");
             if(ticket.Status=="Cancelled")return(true,"This request is already cancelled.");
             if(ticket.Status is not ("Scheduled" or "Waiting"))return(false,"This request cannot be cancelled now. Please contact the office.");
+            InvalidateExchangesLocked(ticket.TicketNumber);
             ticket.Status="Cancelled";ticket.EstimatedWaitText="Cancelled";RefreshQueuePredictionsLocked();
             AddLog("Request cancelled",$"{ticket.TicketNumber} was cancelled by its owner.");Save();return(true,"Your request was cancelled and its reservation was released.");
         }

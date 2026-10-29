@@ -13,7 +13,7 @@
     <a class="@Active("QueueControl")" asp-controller="Admin" asp-action="QueueControl">Queue Control</a>
     <a class="@Active("Appointments")" asp-controller="Admin" asp-action="Appointments">Scheduled visits</a>
     <a class="@Active("Counters")" asp-controller="Admin" asp-action="Counters">Counters</a>
-    @if (role == "Admin")
+    @if (Context.Session.GetString("CampusRole") == "Super Admin")
     {
         <a class="@Active("Users")" href="/sims/modules/admin/manage.php?entity=users">Accounts</a>
     }

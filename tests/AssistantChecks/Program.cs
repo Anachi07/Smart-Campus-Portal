@@ -54,6 +54,37 @@ try {
  Console.WriteLine("PASS booking ownership, cross-day check-in, capacity, idempotency, cancellation, timetable conflicts, and explicit confirmation");
 } finally {Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(folder,true);}
 
+
+var exchangeFolder=Path.Combine(Path.GetTempPath(),"icas-exchange-test-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(exchangeFolder);
+try {
+ Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",exchangeFolder);
+ var seed=new SmartQueueData{Users=Enumerable.Range(2,3).Select(id=>new User{Id=id,Username=$"campus:{id}",Role="Customer"}).ToList(),Counters=new(){new(){Id=1,Name="Registrar",Office="Registrar",Status="Available"}},Settings=new(){BookingDays=new(){0,1,2,3,4,5,6},MaxBookingsPerSlot=2}};
+ File.WriteAllText(Path.Combine(exchangeFolder,"smartqueue-data.json"),JsonSerializer.Serialize(seed));var store=new QueueStore(new FakeHost{ContentRootPath=exchangeFolder});
+ var date=DateOnly.FromDateTime(QueueStore.CampusNow.AddDays(2).DateTime);var slots=store.GetBookingSlots("Document Request",date,2,new());var source=slots[0].StartsAt;var desired=slots[3].StartsAt;
+ Ticket Book(int actor,DateTimeOffset at){var result=store.BookVisit(new(){Confirmed=true,IdempotencyKey=Guid.NewGuid().ToString(),ServiceType="Document Request",RequestType="Good Moral Certificate",StudentNumber=$"QA-{actor}",PhoneNumber="09171111111",StartsAt=at.ToString("O")},actor,"QA",new());Assert(result.ok,result.message);return result.ticket!;}
+ var first=Book(2,source);var second=Book(3,desired);var third=Book(4,desired);
+ var eligibility=Enumerable.Range(2,3).ToDictionary(id=>id,id=>new VisitEligibility(id,true,new()));
+ ChangeVisitRequest Offer()=>new(){Confirmed=true,TicketNumber=first.TicketNumber,ExpectedStartsAt=source.ToString("O"),StartsAt=desired.ToString("O")};
+ var conflicting=new Dictionary<int,VisitEligibility>(eligibility){[2]=new(2,true,new(){new(date.DayOfWeek.ToString(),"00:00","23:59")})};
+ Assert(!store.RequestExchange(Offer(),2,conflicting).ok,"Request must reject requester's class conflicts");
+ Assert(store.RequestExchange(Offer(),2,eligibility).ok,"Both target holders should be invited");var invite=store.GetExchanges(3).Single();
+ Assert(store.GetExchanges(4).Single().Id==invite.Id,"A shared full slot must use one exchange offer");
+ var changedClasses=new Dictionary<int,VisitEligibility>(eligibility){[2]=new(2,true,new(){new(date.DayOfWeek.ToString(),"00:00","23:59")})};
+ var accept=new SwapAction{Id=invite.Id,Decision="accept",Confirmed=true};
+ Assert(!store.RespondExchange(accept,3,changedClasses).ok,"Acceptance must recheck requester's current classes");
+ Assert(store.Snapshot().Tickets.Single(t=>t.Id==first.Id).ScheduledAt==source,"Class conflict must leave both visits untouched");
+ Assert(store.RequestExchange(Offer(),2,eligibility).ok,"Closed exchange can be retried after schedule issue resolves");invite=store.GetExchanges(3).First(e=>e.CanRespond);accept.Id=invite.Id;
+ var results=await Task.WhenAll(Task.Run(()=>store.RespondExchange(accept,3,eligibility)),Task.Run(()=>store.RespondExchange(accept,4,eligibility)));
+ Assert(results.Count(r=>r.ok)==1,"Only one simultaneous acceptance can win");
+ var after=store.Snapshot();Assert(after.Tickets.Count(t=>t.ScheduledAt==desired)==2&&after.Tickets.Count(t=>t.ScheduledAt==source)==1,"Atomic swap must preserve office capacity");
+ Assert(after.Tickets.Single(t=>t.Id==first.Id).ScheduledAt==desired,"Requester must receive the accepted time");
+ var loser=after.Tickets.Single(t=>t.CustomerUserId!=2&&t.ScheduledAt==desired);Assert(store.GetExchanges(loser.CustomerUserId!.Value).First().Status=="Closed","Other invitees must see exchange closed without their reservation changing");
+ var one=store.GetBookingSlots("Document Request",date,2,new()).Last().StartsAt;
+ Assert(!store.RescheduleVisit(new(){TicketNumber=first.TicketNumber,ExpectedStartsAt=desired.ToString("O"),StartsAt=one.ToString("O"),Confirmed=false},2,new()).ok,"Reschedule requires explicit consent");
+ Assert(store.RescheduleVisit(new(){TicketNumber=first.TicketNumber,ExpectedStartsAt=desired.ToString("O"),StartsAt=one.ToString("O"),Confirmed=true},2,new()).ok,"Confirmed available reschedule must work");
+ Console.WriteLine("PASS exchange class revalidation, simultaneous acceptance, atomic capacity, closed competing invitations, and confirmed rescheduling");
+} finally {Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(exchangeFolder,true);}
+
 class FakeClients:IHttpClientFactory {
  public int Calls;public string Provider="gemini",ModelText="";public Uri? Url;public string? Body;public bool HasCredential;
  public HttpClient CreateClient(string name)=>new(new FakeHandler(async request=>{Calls++;Url=request.RequestUri;Body=await request.Content!.ReadAsStringAsync();HasCredential=request.Headers.Contains("x-goog-api-key")||request.Headers.Authorization?.Scheme=="Bearer";object payload=Provider=="gemini"?new{candidates=new[]{new{content=new{parts=new[]{new{text=ModelText}}}}}}:new{choices=new[]{new{message=new{content=ModelText}}}};return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(JsonSerializer.Serialize(payload),Encoding.UTF8,"application/json")};}));

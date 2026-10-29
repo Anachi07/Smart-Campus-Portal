@@ -12,6 +12,7 @@ builder.Services.AddAntiforgery(options =>
 builder.Services.AddHttpClient("campus").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseProxy = false, UseCookies = false });
 builder.Services.AddSingleton<QueueStore>();
 builder.Services.AddSingleton<SchoolAssistantService>();
+builder.Services.AddSingleton<VisitEligibilityService>();
 builder.Services.AddSingleton<AssistantThrottle>();
 builder.Services.AddHttpClient("school-ai",c => c.Timeout=TimeSpan.FromSeconds(20));
 builder.Services.AddDistributedMemoryCache();

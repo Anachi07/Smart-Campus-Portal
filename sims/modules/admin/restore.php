@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__.'/../../includes/layout.php'; require_role(['Admin']); check_csrf(); require_once __DIR__.'/../../includes/backup.php'; $error='';
+require_once __DIR__.'/../../includes/layout.php'; require_role(['Super Admin']); check_csrf(); require_once __DIR__.'/../../includes/backup.php'; $error='';
 if($_SERVER['REQUEST_METHOD']==='POST') {
     $stageDb=null; $stageQueue=null;
     try {

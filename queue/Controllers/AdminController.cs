@@ -156,60 +156,12 @@ public class AdminController : Controller
         return RedirectToAction("Counters");
     }
 
-    public IActionResult Users()
-    {
-        var gate = RequireAdmin(); if (gate is not EmptyResult) return gate;
-        ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
-        var users = _store.GetUsers();
-        return View(new UserManagementViewModel
-        {
-            Users = users,
-            AdminStaffUsers = users.Where(u => u.Role == "Admin" || u.Role == "Staff").ToList(),
-            CustomerUsers = users.Where(u => u.Role == "Customer").ToList()
-        });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult AddUser(UserManagementViewModel model)
-    {
-        var gate = RequireAdmin(); if (gate is not EmptyResult) return gate;
-        if (model.Role != "Admin" && model.Role != "Staff")
-        {
-            model.ErrorMessage = "Public registration is for customers only. Admin can create only Admin or Staff accounts here.";
-            var users = _store.GetUsers();
-            model.Users = users;
-            model.AdminStaffUsers = users.Where(u => u.Role == "Admin" || u.Role == "Staff").ToList();
-            model.CustomerUsers = users.Where(u => u.Role == "Customer").ToList();
-            ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
-            return View("Users", model);
-        }
-
-        var result = _store.CreateUser(model.FullName, model.PhoneNumber, model.Username, model.Password, model.ConfirmPassword, model.Role);
-        if (!result.ok)
-        {
-            model.ErrorMessage = result.message;
-            var users = _store.GetUsers();
-            model.Users = users;
-            model.AdminStaffUsers = users.Where(u => u.Role == "Admin" || u.Role == "Staff").ToList();
-            model.CustomerUsers = users.Where(u => u.Role == "Customer").ToList();
-            ViewBag.SuccessMessage = TempData["SuccessMessage"] as string;
-            return View("Users", model);
-        }
-        TempData["SuccessMessage"] = "Admin/Staff account created successfully.";
-        return RedirectToAction("Users");
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult DeleteUser(int id)
-    {
-        var gate = RequireAdmin(); if (gate is not EmptyResult) return gate;
-        var currentUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-        var result = _store.DeleteUser(id, currentUserId);
-        TempData["SuccessMessage"] = result.message;
-        return RedirectToAction("Users");
-    }
+    // All account creation and approval lives in the Super Admin portal.
+    public IActionResult Users() => Redirect("/sims/modules/admin/manage.php?entity=users");
+    [HttpPost][ValidateAntiForgeryToken]
+    public IActionResult AddUser() => Redirect("/sims/modules/admin/manage.php?entity=users");
+    [HttpPost][ValidateAntiForgeryToken]
+    public IActionResult DeleteUser() => Redirect("/sims/modules/admin/manage.php?entity=users");
 
     public IActionResult ActivityLogs()
     {

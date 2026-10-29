@@ -4,7 +4,7 @@ function teacher_id(): int { return (int)(scalar('SELECT id FROM teachers WHERE 
 function student_scope_sql(string $alias='s'): string {
     $user = current_user(); if (!$user) return '0=1';
     $uid = (int)$user['id'];
-    if ($user['role'] === 'Admin') return '1=1';
+    if (in_array($user['role'],['Admin','Super Admin'],true)) return '1=1';
     if ($user['role'] === 'Teacher') {
         $tid = teacher_id();
         return "($alias.section_id IN (SELECT section_id FROM schedules WHERE teacher_id=$tid) OR EXISTS (SELECT 1 FROM subjects own WHERE own.teacher_id=$tid AND own.course_id=$alias.course_id AND own.year_level=$alias.year_level))";

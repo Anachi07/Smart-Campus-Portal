@@ -19,3 +19,32 @@ public class AppointmentRequest
     public bool Confirmed { get; set; }
 }
 public class TicketAction { public string TicketNumber { get; set; } = ""; }
+
+public class ChangeVisitRequest
+{
+    public string TicketNumber { get; set; } = "";
+    public string ExpectedStartsAt { get; set; } = "";
+    public string StartsAt { get; set; } = "";
+    public bool Confirmed { get; set; }
+}
+public class SwapAction
+{
+    public string Id { get; set; } = "";
+    public string Decision { get; set; } = "";
+    public bool Confirmed { get; set; }
+}
+public class VisitExchange
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string OfferTicketNumber { get; set; } = "";
+    public DateTimeOffset OfferStartsAt { get; set; }
+    public DateTimeOffset DesiredStartsAt { get; set; }
+    public List<string> CandidateTicketNumbers { get; set; } = new();
+    public List<string> DeclinedTicketNumbers { get; set; } = new();
+    public string? AcceptedTicketNumber { get; set; }
+    public string Status { get; set; } = "Pending";
+    public DateTimeOffset ExpiresAt { get; set; }
+}
+public record VisitEligibility(int CampusId, bool Active, List<CampusClass> Classes);
+public record ExchangeView(string Id, string TicketNumber, DateTimeOffset CurrentStartsAt, DateTimeOffset ProposedStartsAt, string Status, DateTimeOffset ExpiresAt, bool Incoming, bool CanRespond, bool CanCancel);
+public record ExchangeTime(DateTimeOffset StartsAt, string Office);

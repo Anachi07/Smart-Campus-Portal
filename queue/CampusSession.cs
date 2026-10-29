@@ -50,6 +50,7 @@ public class CampusSession
             context.Session.SetInt32("UserId", user.Id);
             context.Session.SetString("FullName", user.FullName);
             context.Session.SetString("Role", user.Role);
+            context.Session.SetString("CampusRole", identity.Role);
             context.Session.SetString("PhoneNumber", user.PhoneNumber);
             context.Session.SetString("CampusCsrf", identity.Csrf);
             context.Session.SetString("StudentNumber", identity.StudentNumber);

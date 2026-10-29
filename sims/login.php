@@ -30,7 +30,6 @@ auth_header('Welcome back'); ?>
 <form method="post" class="auth-form"><?= csrf_field() ?>
 <label for="username">Username / student number</label><input id="username" name="username" class="form-control" value="<?= e($username) ?>" maxlength="80" autocomplete="username" required autofocus>
 <label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" class="form-control" autocomplete="current-password" maxlength="200" required></div>
-<p class="small text-muted mt-3">Forgot your password? Ask your school administrator to reset it.</p>
+<p class="small text-muted mt-3">Forgot your password? Ask your Super Admin to reset it.</p>
 <button class="btn btn-primary w-100" type="submit">Sign in <span aria-hidden="true">→</span></button></form>
-<?php if(campus_mode()==='demo'): ?><p class="small text-muted mt-3">Need a student account? <a href="register.php">Create an account</a></p><?php endif; ?>
-<?php auth_footer(); ?>
+<p class="small text-muted mt-3">Need a student account? <a href="register.php">Request an account</a></p><?php auth_footer(); ?>

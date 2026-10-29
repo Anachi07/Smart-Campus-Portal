@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__.'/../../includes/layout.php'; require_role(['Admin']);
+require_once __DIR__.'/../../includes/layout.php'; require_role(['Super Admin']);
 if(isset($_GET['download'])) {
     $temporary=tempnam(dirname(DB_PATH),'.backup-'); unlink($temporary);
     try {

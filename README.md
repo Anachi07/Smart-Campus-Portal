@@ -29,7 +29,7 @@ The launcher can use `CAMPUS_DATA_DIR` for a separate data directory; original s
 
 ## Accounts
 
-Accounts are managed privately by the school administrator. Public pages do not display sample usernames or passwords. Password inputs remain masked, and new or changed passwords require at least 12 characters. Change any initial/sample account passwords through My profile before giving accounts to actual users; hiding a login hint does not rotate existing credentials.
+Accounts are managed privately by the school Super Admin. Public pages do not display sample usernames or passwords. Password inputs remain masked, and new or changed passwords require at least 12 characters. Change any initial/sample account passwords through My profile before giving accounts to actual users; hiding a login hint does not rotate existing credentials.
 
 The repository's sample-data fixtures are for development testing only. Keep real account credentials out of source files, screenshots, public FAQs, and chat messages.
 
@@ -48,7 +48,7 @@ CAMPUS_TEST_URL=http://127.0.0.1:8080 python scripts/smoke-test.py
 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_TEST_URL=http://127.0.0.1:8080 python scripts/regression-test.py
 ```
 
-The regression suite exercises permissions/report isolation, student-only registration, password session revocation, admin CRUD/linked profiles, last-admin protection, grade/GPA validation, attendance upsert, duplicate tickets, ticket ownership, calendar/settings, and backup validation/round-trip restore. It requires explicit acknowledgement because it restores a workspace backup.
+The regression suite exercises permissions/report isolation, student-only registration, password session revocation, admin CRUD/linked profiles, last-owner protection, grade/GPA validation, attendance upsert, duplicate tickets, ticket ownership, calendar/settings, and backup validation/round-trip restore. It requires explicit acknowledgement because it restores a workspace backup.
 
 Optional browser checks require Playwright and Chromium:
 
@@ -73,3 +73,20 @@ These are office-service queue tickets. They do not generate academic documents,
 ## School assistant and planned visits
 
 The compact ICAS Assistant provides published school guidance, optional Gemini/OpenAI answers with server-side credentials, and confirmed queue reservations. Administrators publish school facts and configure booking availability. See [ASSISTANT.md](ASSISTANT.md) for setup and limits. Without a provider key, it is explicitly a school guide; scheduling still works.
+
+## Super Admin and account approval
+
+**Super Admin** alone creates accounts, assigns roles, resets other users' passwords, and approves or rejects pending registrations. Regular Admin retains academic and office operations; account-management routes return 403. Complete workspace backup/restore is also restricted to Super Admin because it includes and can replace account credentials and roles.
+
+On first upgrade, the oldest active Admin is promoted once to Super Admin, preserving the existing username and password and invalidating that account's old sessions. No new shared password is generated or displayed. Sign in again with the existing owner login, open **Account governance → Accounts & approvals**, and create a separate regular Admin if needed. Future production initialization uses the existing `CAMPUS_ADMIN_USERNAME` / `CAMPUS_ADMIN_PASSWORD` settings to create the first Super Admin. Existing approved users remain active. New self-registrations request Student access and stay **Pending** until approved. Keep at least one active Super Admin; self-demotion and deleting the last owner are blocked.
+
+Visits can be rescheduled after confirmation, or exchanged through private in-app invitations with the other holder's consent. See [ASSISTANT.md](ASSISTANT.md) for time limits and availability checks.
+
+The new governance/exchange checks use disposable data and restore a full backup:
+
+```sh
+CAMPUS_TEST_URL=http://127.0.0.1:18080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 python3 scripts/governance-exchange-test.py
+CAMPUS_TEST_URL=http://127.0.0.1:18080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_CHROMIUM=/usr/bin/chromium node scripts/exchange-browser.cjs
+```
+
+Coverage includes regular Admin access denial, pending-account approval/rejection, last-owner protection, reschedule ownership and stale confirmations, private exchange invitations, decline/withdraw/accept, class-schedule revalidation, simultaneous acceptance, and preserved office capacity.

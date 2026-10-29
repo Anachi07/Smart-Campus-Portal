@@ -63,10 +63,26 @@ function init_database(PDO $pdo): void {
     $pdo->exec('CREATE INDEX IF NOT EXISTS attendance_student_date ON attendance(student_id,date)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS schedules_section_subject ON schedules(section_id,subject_id)');
     seed_database($pdo);
+    // Run once for older workspaces: preserve the owner's login without creating a public password.
+    $pdo->beginTransaction();
+    try {
+        $migrated=$pdo->query("SELECT value FROM settings WHERE key='super_admin_migrated'")->fetchColumn();
+        if($migrated===false) {
+            $super=(int)$pdo->query("SELECT id FROM roles WHERE name='Super Admin'")->fetchColumn();
+            if(!(int)$pdo->query("SELECT COUNT(*) FROM users WHERE role_id=$super AND status='Active'")->fetchColumn()) {
+                $owner=$pdo->query("SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='Admin' AND u.status='Active' ORDER BY u.id LIMIT 1")->fetchColumn();
+                if(!$owner) throw new RuntimeException('An active owner is required for Super Admin migration.');
+                $pdo->prepare('UPDATE users SET role_id=?,auth_version=auth_version+1 WHERE id=?')->execute([$super,$owner]);
+                $pdo->prepare('INSERT INTO activity_logs(user_id,action,details) VALUES(?,?,?)')->execute([$owner,'Super Admin migration','Primary administrator promoted; existing login retained.']);
+            }
+            $pdo->exec("INSERT INTO settings(key,value) VALUES('super_admin_migrated','1')");
+        }
+        $pdo->commit();
+    } catch(Throwable $e) { if($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 
 function seed_database(PDO $pdo): void {
-    $roles = ['Admin','Teacher','Student','Parent'];
+    $roles = ['Admin','Teacher','Student','Parent','Super Admin'];
     $st = $pdo->prepare('INSERT OR IGNORE INTO roles(name) VALUES(?)');
     foreach ($roles as $role) { $st->execute([$role]); }
 
@@ -87,10 +103,10 @@ function seed_database(PDO $pdo): void {
     if (getenv('CAMPUS_MODE') === 'production') {
         $password = getenv('CAMPUS_ADMIN_PASSWORD') ?: '';
         if (strlen($password) < 12) throw new RuntimeException('Set CAMPUS_ADMIN_PASSWORD to at least 12 characters for first production startup.');
-        $addUser(getenv('CAMPUS_ADMIN_USERNAME') ?: 'schooladmin', $password, 'Admin', 'School Administrator', null);
+        $addUser(getenv('CAMPUS_ADMIN_USERNAME') ?: 'schooladmin', $password, 'Super Admin', 'School Owner', null);
         return;
     }
-    $adminId = $addUser('ADMIN', 'ADMIN', 'Admin', 'Admin User', 'admin@smartsims.local');
+    $adminId = $addUser('ADMIN', 'ADMIN', 'Super Admin', 'School Owner', 'admin@smartsims.local');
     $teacher1 = $addUser('TCH001', 'teacher123', 'Teacher', 'Prof. Maria Santos', 'maria.santos@smartsims.local');
     $teacher2 = $addUser('TCH002', 'teacher123', 'Teacher', 'Prof. Robert Cruz', 'robert.cruz@smartsims.local');
     $student1 = $addUser('2024-0001', 'student123', 'Student', 'Juan Dela Cruz', 'juan.delacruz@smartsims.local');
@@ -195,7 +211,7 @@ function require_login(): void {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT) { session_destroy(); redirect_root('login.php?timeout=1'); }
     $_SESSION['last_activity'] = time();
 }
-function require_role(array $roles): void { require_login(); if (!in_array(current_user()['role'], $roles, true)) { http_response_code(403); exit('403 Forbidden'); } }
+function require_role(array $roles): void { require_login(); if (!in_array(current_user()['role'], $roles, true) && !(current_user()['role']==='Super Admin' && in_array('Admin',$roles,true))) { http_response_code(403); exit('403 Forbidden'); } }
 function csrf_token(): string { if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); } return $_SESSION['csrf']; }
 function csrf_field(): string { return '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">'; }
 function check_csrf(): void { if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['csrf']) || !is_string($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']))) { http_response_code(419); exit('Invalid CSRF token.'); } }

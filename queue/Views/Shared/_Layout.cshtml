@@ -69,7 +69,7 @@
                 <a asp-controller="Home" asp-action="Display" target="_blank">Queue display</a>
                 @if (!string.IsNullOrWhiteSpace(role))
                 {
-                    <span class="user-chip"><span>@role</span>@fullName</span>
+                    <span class="user-chip"><span>@(Context.Session.GetString("CampusRole") ?? role)</span>@fullName</span>
                     <form action="/sims/logout.php" method="post"><input type="hidden" name="csrf" value="@Context.Session.GetString("CampusCsrf")" /><button class="btn btn-small btn-soft">Sign out</button></form>
                 }
                 else

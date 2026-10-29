@@ -14,15 +14,26 @@ $entities = [
  'schedules'=>['title'=>'Schedules','table'=>'schedules','fields'=>['subject_id'=>'Subject ID','section_id'=>'Section ID','teacher_id'=>'Teacher ID','day_of_week'=>'Day','start_time'=>'Start','end_time'=>'End','room'=>'Room'],'list'=>['id','subject_id','section_id','teacher_id','day_of_week','start_time','end_time','room']]
 ];
 $entity=(string)($_GET['entity']??'students'); if(!isset($entities[$entity])) $entity='students';
+if($entity==='users') require_role(['Super Admin']);
 $cfg=$entities[$entity]; $table=$cfg['table']; $error='';
 $references=['role_id'=>['roles','name'],'course_id'=>['courses','code'],'section_id'=>['sections','name'],'student_id'=>['students','student_no'],'subject_id'=>['subjects','code'],'teacher_id'=>['teachers','employee_no'],'adviser_teacher_id'=>['teachers','employee_no']];
 $choices=[];
 foreach($references as $field=>[$ref,$label]) $choices[$field]=option_list($ref,$label);
 $choices['user_id']=rows('SELECT id,full_name || " (" || username || ")" AS label FROM users WHERE role_id=? ORDER BY full_name',[role_id(['students'=>'Student','teachers'=>'Teacher','parents'=>'Parent'][$entity]??'Student')]);
-$enums=['status'=>['Active','Inactive'],'gender'=>['Female','Male','Other','Prefer not to say'],'year_level'=>['1st Year','2nd Year','3rd Year','4th Year','5th Year'],'risk_level'=>['Low','Medium','High'],'target_role'=>['All','Student','Teacher','Parent'],'day_of_week'=>['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],'is_active'=>['0','1']];
+$enums=['status'=>['Active','Pending','Rejected','Inactive'],'gender'=>['Female','Male','Other','Prefer not to say'],'year_level'=>['1st Year','2nd Year','3rd Year','4th Year','5th Year'],'risk_level'=>['Low','Medium','High'],'target_role'=>['All','Student','Teacher','Parent'],'day_of_week'=>['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],'is_active'=>['0','1']];
 if($_SERVER['REQUEST_METHOD']==='POST') {
     $action=(string)($_POST['action']??'create'); $id=(int)($_POST['id']??0);
     try {
+        if($entity==='users' && in_array($action,['approve','reject'],true)) {
+            db()->beginTransaction();
+            $pending=row("SELECT id FROM users WHERE id=? AND status='Pending'",[$id]);
+            if(!$pending) throw new InvalidArgumentException('This account is no longer pending. Refresh the page.');
+            $status=$action==='approve'?'Active':'Rejected';
+            db()->prepare('UPDATE users SET status=?,auth_version=auth_version+1 WHERE id=?')->execute([$status,$id]);
+            db()->prepare('INSERT INTO notifications(user_id,title,body) VALUES(?,?,?)')->execute([$id,'Account review',$action==='approve'?'Your account was approved by the Super Admin.':'Your registration was not approved. Contact the school for assistance.']);
+            log_activity($_SESSION['user_id'],ucfirst($action).' account',"Account #$id reviewed by Super Admin.");db()->commit();
+            set_flash('success',$action==='approve'?'Account approved. The user can now sign in.':'Registration rejected.');redirect('manage.php?entity=users');
+        }
         if(!in_array($action,['create','update','delete'],true)) throw new InvalidArgumentException('Invalid action.');
         $existing=$id?row("SELECT * FROM $table WHERE id=?",[$id]):null;
         if($action!=='create' && !$existing) throw new InvalidArgumentException('This record no longer exists. Refresh the page and try again.');
@@ -37,13 +48,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             if($action!=='delete' && isset($enums[$field]) && !in_array((string)$value,$enums[$field],true)) throw new InvalidArgumentException("Choose a valid $label.");
             $values[$field]=$value;
         }
-        if($entity==='users') {
-            $isAdmin=$existing && (int)$existing['role_id']===role_id('Admin') && $existing['status']==='Active';
-            $removing=$action==='delete'||(int)$values['role_id']!==role_id('Admin')||$values['status']!=='Active';
-            if($isAdmin && $removing && (int)scalar('SELECT COUNT(*) FROM users WHERE role_id=? AND status="Active"',[role_id('Admin')])<=1) throw new InvalidArgumentException('Keep at least one active administrator.');
-            if($id===(int)$_SESSION['user_id'] && $removing) throw new InvalidArgumentException('You cannot delete, disable, or demote your own account.');
-        }
         db()->beginTransaction();
+        if($entity==='users') {
+            $isAdmin=$existing && (int)$existing['role_id']===role_id('Super Admin') && $existing['status']==='Active';
+            $removing=$action==='delete'||(int)$values['role_id']!==role_id('Super Admin')||$values['status']!=='Active';
+            if($isAdmin && $removing && (int)scalar('SELECT COUNT(*) FROM users WHERE role_id=? AND status="Active"',[role_id('Super Admin')])<=1) throw new InvalidArgumentException('Keep at least one active Super Admin.');
+            if($id===(int)$_SESSION['user_id'] && ($action==='delete'||(int)$values['role_id']!==(int)$existing['role_id']||$values['status']!=='Active')) throw new InvalidArgumentException('You cannot delete, disable, or demote your own account.');
+        }
         if($action==='delete') db()->prepare("DELETE FROM $table WHERE id=?")->execute([$id]);
         else {
             foreach(['username','full_name','code','name','student_no','employee_no','title'] as $required) if(array_key_exists($required,$values) && !$values[$required]) throw new InvalidArgumentException(ucwords(str_replace('_',' ',$required)).' is required.');
@@ -55,6 +66,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             if($entity==='users') {
                 if(!preg_match('/^[a-zA-Z0-9._-]{3,60}$/',$values['username'])) throw new InvalidArgumentException('Use 3–60 letters, numbers, dots, dashes, or underscores for the username.');
                 if(scalar('SELECT COUNT(*) FROM users WHERE (username=? COLLATE NOCASE OR email=? COLLATE NOCASE) AND id<>?',[$values['username'],$values['email'],$id])) throw new InvalidArgumentException('That username or email is already in use.');
+                if($existing) $values['auth_version']=(int)$existing['auth_version']+1;
                 $password=(string)($_POST['new_password']??'');
                 if($action==='create' || $password!=='') {
                     if(strlen($password)<12 || strlen($password)>200) throw new InvalidArgumentException('A new password must have 12–200 characters.');
@@ -95,13 +107,15 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 $edit=isset($_GET['edit'])?row("SELECT * FROM $table WHERE id=?",[(int)$_GET['edit']]):null;
 $form=$error?array_merge($edit??[],$_POST):($edit??[]);
 $search=trim((string)($_GET['q']??''));
-$data=rows("SELECT * FROM $table ORDER BY id DESC LIMIT 200");
+$order=$entity==='users'?"CASE WHEN status='Pending' THEN 0 ELSE 1 END,id DESC":"id DESC";
+$data=rows("SELECT * FROM $table ORDER BY $order LIMIT 200");
 if($search!=='') $data=array_values(array_filter($data,fn($record)=>stripos(implode(' ',array_map('strval',$record)),$search)!==false));
 render_header($cfg['title']); ?>
+<?php if($entity==='users'): ?><div class="alert alert-info">Super Admin only · <?= (int)scalar("SELECT COUNT(*) FROM users WHERE status='Pending'") ?> pending registrations. Review identity with the school before approving. Account credentials are shared privately.</div><?php endif; ?>
 <div class="page-title"><div><span class="eyebrow">CAMPUS MANAGEMENT</span><h1><?= e($cfg['title']) ?></h1><p><?= count($data) ?> records shown · Manage your campus information.</p></div><a href="manage.php?entity=<?= e($entity) ?>" class="btn btn-outline-primary">New record</a></div>
 <?php if($error): ?><div class="alert alert-danger" role="alert"><?= e($error) ?></div><?php endif; ?>
 <div class="row g-4"><div class="col-xl-4"><section class="panel"><h2 class="panel-title"><?= $edit?'Edit record':'Add a record' ?></h2>
-<?php if(in_array($entity,['students','teachers','parents'],true)): ?><p class="small text-muted">Create an account in <a href="manage.php?entity=users">Users & Roles</a> first. Its profile is created automatically; edit that profile here.</p><?php endif; ?>
+<?php if(in_array($entity,['students','teachers','parents'],true)): ?><p class="small text-muted">The Super Admin creates campus accounts. Profiles are created automatically; update academic or contact details here.</p><?php endif; ?>
 <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="<?= $edit?'update':'create' ?>"><?php if($edit): ?><input type="hidden" name="id" value="<?= e($edit['id']) ?>"><?php endif; ?>
 <?php foreach($cfg['fields'] as $field=>$label): ?><div class="mb-3"><label for="field-<?= e($field) ?>" class="form-label"><?= e(str_replace(' ID','',$label)) ?></label>
 <?php if(isset($choices[$field])): ?><select id="field-<?= e($field) ?>" name="<?= e($field) ?>" class="form-select" <?= in_array($field,['role_id','user_id'])?'required':'' ?>><option value="">Select <?= e(str_replace(' ID','',$label)) ?></option><?php foreach($choices[$field] as $option): ?><option value="<?= e($option['id']) ?>" <?= (string)($form[$field]??'')===(string)$option['id']?'selected':'' ?>><?= e($option['label']) ?></option><?php endforeach; ?></select>
@@ -112,5 +126,5 @@ render_header($cfg['title']); ?>
 <button class="btn btn-primary w-100">Save record</button></form></section></div>
 <div class="col-xl-8"><section class="panel"><form method="get" class="d-flex gap-2 mb-4"><input type="hidden" name="entity" value="<?= e($entity) ?>"><label class="visually-hidden" for="record-search">Search records</label><input id="record-search" name="q" value="<?= e($search) ?>" class="form-control" placeholder="Search these records…"><button class="btn btn-outline-primary">Search</button></form>
 <?php if(!$data): empty_state('No matching records','Add a record or try a different search.'); else: ?><div class="table-responsive"><table class="table table-hover"><thead><tr><?php foreach($cfg['list'] as $col): ?><th><?= e(ucwords(str_replace('_',' ',$col))) ?></th><?php endforeach; ?><th>Actions</th></tr></thead><tbody>
-<?php foreach($data as $record): ?><tr><?php foreach($cfg['list'] as $col): $value=$record[$col]??''; if(($col==='gpa'||$col==='attendance_rate')&&(float)$value===0) $value='—'; if(isset($choices[$col])) foreach($choices[$col] as $option) if((string)$option['id']===(string)$value) $value=$option['label']; ?><td><?= e($value) ?></td><?php endforeach; ?><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="manage.php?entity=<?= e($entity) ?>&edit=<?= e($record['id']) ?>" aria-label="Edit record">Edit</a> <form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-outline-danger confirm-delete" aria-label="Delete record">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section></div></div>
+<?php foreach($data as $record): ?><tr><?php foreach($cfg['list'] as $col): $value=$record[$col]??''; if(($col==='gpa'||$col==='attendance_rate')&&(float)$value===0) $value='—'; if(isset($choices[$col])) foreach($choices[$col] as $option) if((string)$option['id']===(string)$value) $value=$option['label']; ?><td><?= e($value) ?></td><?php endforeach; ?><td class="text-nowrap"><?php if($entity==='users' && $record['status']==='Pending'): ?><form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-primary" name="action" value="approve">Approve</button> <button class="btn btn-sm btn-outline-danger" name="action" value="reject">Reject</button></form> <?php endif; ?><a class="btn btn-sm btn-outline-primary" href="manage.php?entity=<?= e($entity) ?>&edit=<?= e($record['id']) ?>" aria-label="Edit record">Edit</a> <form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-outline-danger confirm-delete" aria-label="Delete record">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section></div></div>
 <?php render_footer(); ?>

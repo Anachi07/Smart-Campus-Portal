@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/includes/layout.php';if(!current_user())redirect('/sims/login.php');require_login();
-$user=current_user();$admin=$user['role']==='Admin';
+$user=current_user();$admin=in_array($user['role'],['Admin','Super Admin'],true);
 $announcements=rows('SELECT * FROM announcements WHERE target_role IN ("All",?) ORDER BY id DESC LIMIT 3',[$user['role']]);
 render_header('My campus'); ?>
 <div class="page-title campus-overview-heading"><div><span class="eyebrow">ICAS PHILIPPINES</span><h1>Welcome, <?= e(explode(' ',$user['full_name'])[0]) ?>.</h1><p>Your academics and campus services, in one place.</p></div><button class="btn btn-primary" type="button" data-assistant-action="schedule">Plan a campus visit</button></div>

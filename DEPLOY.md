@@ -49,3 +49,7 @@ The ICAS release uses a green, white, and yellow school theme with the supplied-
 ## Assistant configuration
 
 See [ASSISTANT.md](ASSISTANT.md) for published school facts, appointment rules, and optional server-side AI configuration. No provider key is committed or required for school-guide answers and queue scheduling.
+
+## Super Admin upgrade
+
+Back up before redeploying. The first upgrade promotes the oldest active Admin account to Super Admin once and preserves its existing login. Sign in again after deployment. Account creation, approvals, role changes, password resets for other users, and full backup/restore move to **Account governance → Accounts & approvals** (and its adjacent backup links). Regular Admin remains available as a separate role the Super Admin can assign. Pending self-registrations cannot sign in until approved. Old backups without the Super Admin migration marker are migrated on first use; migrated backups must contain an active Super Admin.
