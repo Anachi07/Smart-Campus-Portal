@@ -1,0 +1,10 @@
+@model List<Ticket>
+@{ViewData["Title"]="Service requests";bool staff=ViewBag.Staff==true;}
+<section class="@(staff?"admin-layout":"content-shell")">
+@if(staff){@await Html.PartialAsync("_AdminSidebar")}
+<div class="@(staff?"admin-main":"")">
+<div class="section-head"><div><p class="eyebrow">REGISTRAR & CASHIER</p><h1>@(staff?"Document requests":"My service requests")</h1><p class="muted">Track requirements, document processing, and completed transactions.</p></div><div class="actions">@if(!staff){<a class="btn" href="/Queue/GetTicket">New transaction</a>}<a class="btn btn-soft" href="/Services/OfficeCalendar">Office calendar</a></div></div>
+@if(staff){<form method="get" class="panel ops-filter"><label>Document stage<select name="stage"><option value="">All stages</option>@foreach(var stage in QueueStore.DocumentStages){<option value="@stage" selected="@(ViewBag.Stage==stage)">@stage</option>}</select></label><button class="btn" type="submit">Filter</button></form>}
+@if(!Model.Any()){<div class="panel"><h2>No requests yet</h2><p class="muted">Requests appear here after a queue ticket or visit reservation is created.</p><a class="btn btn-soft" href="/Queue/GetTicket">Start a transaction</a></div>}
+<div class="ops-request-list">@foreach(var ticket in Model){<article class="panel ops-request-row"><div><span class="eyebrow">@ticket.Office</span><h2>@ticket.RequestType</h2><p class="muted">@ticket.TicketNumber · @ticket.CreatedAt.ToString("MMM d, yyyy")</p>@if(staff){<p>@ticket.CustomerName · @ticket.StudentNumber</p>}</div><div><span class="pill">@(ticket.DocumentStatus??ticket.Status)</span><p class="muted">Queue: @ticket.Status</p><a class="btn btn-soft" asp-action="Request" asp-route-id="@ticket.TicketNumber">Open request →</a></div></article>}</div>
+</div></section>

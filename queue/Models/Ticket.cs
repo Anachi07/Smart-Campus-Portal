@@ -19,6 +19,12 @@ public class Ticket
     public DateTimeOffset? ScheduledAt { get; set; }
     public DateTime? CheckedInAt { get; set; }
     public string BookingKey { get; set; } = string.Empty;
+    public string? DocumentStatus { get; set; }
+    public string ClaimCode { get; set; } = "";
+    public List<DocumentProgress> DocumentHistory { get; set; } = new();
+    public List<RequestChecklistItem> Checklist { get; set; } = new();
+    public DateTimeOffset? VisitReminderFor { get; set; }
+    public bool AlmostNextReminded { get; set; }
     public DateTime? CalledAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime? SkippedAt { get; set; }

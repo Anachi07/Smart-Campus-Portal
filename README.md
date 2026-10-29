@@ -90,3 +90,7 @@ CAMPUS_TEST_URL=http://127.0.0.1:18080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_C
 ```
 
 Coverage includes regular Admin access denial, pending-account approval/rejection, last-owner protection, reschedule ownership and stale confirmations, private exchange invitations, decline/withdraw/accept, class-schedule revalidation, simultaneous acceptance, and preserved office capacity.
+
+## Complete campus service workflow
+
+Document requests now have staged tracking and private printable claim stubs. School-managed requirements appear before a transaction and become a request checklist, with separate student-prepared and office-verified flags. In-app reminders, office holidays/weekly breaks, private transaction feedback, and filterable service reports with summary CSV exports are integrated with the queue and booking engine. See [CAMPUS_SERVICES.md](CAMPUS_SERVICES.md) for the staff workflow, notification limits, and validation commands. Office requirements and closures must be entered by the school; none are assumed official by default.

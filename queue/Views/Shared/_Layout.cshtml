@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/campus.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/icas.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/operations.css" asp-append-version="true" />
 </head>
 <body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount">
     @if (!isAuthPage)
@@ -40,6 +41,7 @@
                 @if (role == "Customer")
                 {
                     <a asp-controller="Queue" asp-action="GetTicket" class="@(controller == "Queue" && action == "GetTicket" ? "active" : "")">New transaction</a>
+                    <a href="/Services/Requests">My requests</a>
                     <a asp-controller="Queue" asp-action="MyTicket" class="@(controller == "Queue" && action == "MyTicket" ? "active" : "")">Track</a>
                     <a asp-controller="Queue" asp-action="Notifications" class="notification-link @(controller == "Queue" && action == "Notifications" ? "active" : "")">
                         Notifications

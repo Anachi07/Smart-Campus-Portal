@@ -22,6 +22,7 @@
             </fieldset>
             <label class="school-field">Transaction type<select asp-for="RequestType" required data-selected="@Model.RequestType">@foreach (var type in CampusServices.RequestTypes.GetValueOrDefault(Model.ServiceType) ?? Array.Empty<string>()) { <option value="@type">@type</option> }</select></label>
             <div class="school-office-indicator"><span class="office-dot"></span><span>Your request goes to <strong id="requestOffice">@CampusServices.OfficeFor(Model.ServiceType)</strong></span></div>
+            <section id="service-preflight" class="ops-preflight" aria-live="polite"></section>
             <h2 class="school-form-heading"><span>02</span> Confirm your details</h2>
             <div class="school-form-grid">
                 <label class="school-field">Requested by<input asp-for="CustomerName" readonly autocomplete="name" /></label>
@@ -42,4 +43,5 @@
 @section Scripts {
 <script type="application/json" id="campusServiceCatalog">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(CampusServices.RequestTypes))</script>
 <script src="~/js/school-request.js" asp-append-version="true"></script>
+<script src="~/js/service-checklist.js" asp-append-version="true"></script>
 }

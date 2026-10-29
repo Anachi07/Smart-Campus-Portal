@@ -40,6 +40,7 @@
                     <div>
                         <span class="pill status-@QueueStore.StatusCss(ticket.Status)">@ticket.Status • @ticket.EstimatedWaitText</span>
                         <h2>@ticket.TicketNumber</h2>
+                        <a class="btn btn-soft" href="/Services/Request?id=@Uri.EscapeDataString(ticket.TicketNumber)">Requirements & progress →</a>
                         <p>@ticket.CustomerName • @QueueStore.MaskPhone(ticket.PhoneNumber)</p>
                     </div>
                     <div class="ticket-meta">

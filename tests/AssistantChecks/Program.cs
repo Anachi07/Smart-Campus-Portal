@@ -85,6 +85,50 @@ try {
  Console.WriteLine("PASS exchange class revalidation, simultaneous acceptance, atomic capacity, closed competing invitations, and confirmed rescheduling");
 } finally {Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(exchangeFolder,true);}
 
+
+var operationsFolder=Path.Combine(Path.GetTempPath(),"icas-operations-test-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(operationsFolder);
+try {
+ Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",operationsFolder);
+ var seed=new SmartQueueData{Users=new(){new(){Id=2,Username="campus:2",Role="Customer"},new(){Id=3,Username="campus:3",Role="Customer"}},Counters=new(){new(){Id=1,Name="Registrar",Office="Registrar",Status="Available"},new(){Id=2,Name="Cashier",Office="Cashier",Status="Available"}},Settings=new(){BookingDays=new(){0,1,2,3,4,5,6},MaxBookingsPerSlot=1}};
+ var file=Path.Combine(operationsFolder,"smartqueue-data.json");File.WriteAllText(file,JsonSerializer.Serialize(seed));var store=new QueueStore(new FakeHost{ContentRootPath=operationsFolder});
+ Assert(store.SaveRequirement(new(){ServiceType="Document Request",RequestType="Other Document",Title="School-approved checklist fixture",Instructions="Test only",Required=true},1).ok,"Approved requirement definition should save");
+ var doc=store.CreateTicket("QA","09171111111","Document Request","Regular",2,"Other Document","QA-2").ticket!;
+ Assert(doc.DocumentStatus=="For review"&&doc.Checklist.Count==1,"New document must have review state and requirement snapshot");
+ var requirement=doc.Checklist.Single().RequirementId;
+ Assert(store.SetPrepared(doc.TicketNumber,2,new(){requirement}).ok&&!store.Snapshot().Tickets.Single(t=>t.Id==doc.Id).Checklist.Single().Verified,"Student preparation must not count as verification");
+ Assert(!store.SetPrepared(doc.TicketNumber,3,new(){requirement}).ok,"Other accounts cannot change checklist");
+ Assert(store.AdvanceDocument(doc.TicketNumber,"Processing","Review complete",1).ok,"Document should advance in order");
+ Assert(!store.AdvanceDocument(doc.TicketNumber,"Ready for pickup","",1).ok,"Unverified required items must block readiness");
+ Assert(store.VerifyChecklist(doc.TicketNumber,new(){requirement},1).ok,"Staff can verify requirements");
+ Assert(store.AdvanceDocument(doc.TicketNumber,"Ready for pickup","Collect at the Registrar",1).ok,"Verified document can be marked ready");
+ Assert(!store.AdvanceDocument(doc.TicketNumber,"Released","",1).ok,"Release requires identity-check confirmation note");
+ Assert(store.AdvanceDocument(doc.TicketNumber,"Released","Recipient identity checked in person",1).ok,"Staff can confirm actual release");
+ var released=store.Snapshot().Tickets.Single(t=>t.Id==doc.Id);Assert(!string.IsNullOrEmpty(released.ClaimCode)&&released.DocumentHistory.Count==4&&released.Status=="Served"&&released.CalledAt==null,"Confirmed release must finish the active queue visit without fabricating a counter-call time");
+ Assert(!store.SubmitFeedback(doc.TicketNumber,3,5,"Wrong owner").ok,"Feedback requires ownership");Assert(!store.SubmitFeedback(doc.TicketNumber,2,6,"").ok,"Rating bounds must be enforced");Assert(store.SubmitFeedback(doc.TicketNumber,2,5,"Good service").ok&&!store.SubmitFeedback(doc.TicketNumber,2,4,"Again").ok,"One feedback response per completed transaction");
+ Assert(store.SaveRequirement(new(){Id=requirement,ServiceType="Document Request",RequestType="Other Document",Title="Changed for future requests",Required=true},1).ok,"Requirement can be updated");Assert(store.Snapshot().Tickets.Single(t=>t.Id==doc.Id).Checklist.Single().Title=="School-approved checklist fixture","Existing checklist snapshot must not be rewritten");
+ var date=DateOnly.FromDateTime(QueueStore.CampusNow.AddDays(2).DateTime);var first=store.GetBookingSlots("Document Request",date,3,new()).First();
+ var reserved=store.BookVisit(new(){Confirmed=true,IdempotencyKey=Guid.NewGuid().ToString(),ServiceType="Document Request",RequestType="Certificate of Enrollment",StudentNumber="QA-3",PhoneNumber="09172222222",StartsAt=first.StartsAt.ToString("O")},3,"QA3",new()).ticket!;
+ store.ProcessReminders(first.StartsAt.AddMinutes(-20));store.ProcessReminders(first.StartsAt.AddMinutes(-10));Assert(store.GetAccountNotifications(3).Count(n=>n.Title=="Visit reminder"&&n.TicketNumber==reserved.TicketNumber)==1,"Appointment reminders must be deduplicated per reserved time");
+ Assert(store.SaveClosure(new(){Mode="Date",Office="Registrar",Date=date,AllDay=true,Title="QA holiday"},1).ok,"Office holiday should save");Assert(!store.GetBookingSlots("Document Request",date,3,new()).Any(),"Holiday must block appointment slots");Assert(store.GetBookingSlots("Tuition Payment",date,3,new()).Any(),"Registrar closure must not close Cashier");Assert(store.GetAccountNotifications(3).Any(n=>n.Title=="Office availability changed"),"Affected existing reservations need a closure notice");
+ Assert(store.Snapshot().Tickets.Single(t=>t.Id==reserved.Id).Status=="Scheduled","Closure must preserve the existing reservation");
+ store.RemoveClosure(store.Snapshot().OfficeClosures.Single().Id,1);
+ Assert(store.SaveClosure(new(){Mode="Weekly",Office="All Services",Weekday=(int)date.DayOfWeek,StartTime="12:00",EndTime="13:00",Title="QA lunch"},1).ok,"Recurring lunch should save");Assert(!store.GetBookingSlots("Document Request",date,3,new()).Any(s=>s.StartsAt.Hour==12),"Lunch break must exclude overlapping slots");
+ Assert(!store.SaveClosure(new(){Mode="Date",Date=date,Office="Registrar",StartTime="14:00",EndTime="13:00",Title="Invalid"},1).ok,"Invalid closure ranges must fail");
+ var report=store.GetOperationsReport(DateOnly.FromDateTime(QueueStore.CampusNow.Date),DateOnly.FromDateTime(QueueStore.CampusNow.Date),"Registrar");Assert(report.ReleasedDocuments==1&&report.FeedbackCount==1&&report.AverageRating==5&&report.AverageWaitMinutes==null,"Reports must not count uncalled tickets as zero-minute waits");
+ QueueStore.ValidateBackup(JsonSerializer.Serialize(store.Snapshot()));store.Reload();Assert(store.Snapshot().Feedback.Count==1&&store.Snapshot().Tickets.Single(t=>t.Id==doc.Id).ClaimCode==released.ClaimCode,"Document, calendar, feedback, and checklist data must survive reload");
+
+ var fixture=store.Snapshot();var actual=QueueStore.CampusNow;
+ fixture.Tickets.Add(new(){Id=100,TicketNumber="QA-REAL-WAIT",CustomerUserId=3,ServiceType="Tuition Payment",RequestType="Current Tuition Assessment",Status="Served",CreatedAt=actual.DateTime.AddDays(-2),ScheduledAt=actual.AddMinutes(-20),CheckedInAt=actual.DateTime.AddMinutes(-20),CalledAt=actual.DateTime.AddMinutes(-10),CompletedAt=actual.DateTime.AddMinutes(-5)});
+ fixture.Tickets.Add(new(){Id=101,TicketNumber="QA-LATE-CLOSURE",CustomerUserId=3,ServiceType="Tuition Payment",RequestType="Tuition Assessment Assistance",Status="Scheduled",CreatedAt=actual.DateTime,ScheduledAt=actual.AddMinutes(10)});
+ File.WriteAllText(file,JsonSerializer.Serialize(fixture));store.Reload();
+ var actualReport=store.GetOperationsReport(DateOnly.FromDateTime(actual.Date).AddDays(-2),DateOnly.FromDateTime(actual.Date),"Cashier");Assert(actualReport.WaitSamples==1&&actualReport.AverageWaitMinutes==10,"Actual wait must start at check-in, not days-old booking creation");
+ Assert(store.SaveClosure(new(){Mode="Date",Office="Cashier",Date=DateOnly.FromDateTime(actual.Date),AllDay=true,Title="Last-minute closure"},1).ok,"Late closure should save");
+ var affected=store.Snapshot().Tickets.Single(t=>t.TicketNumber=="QA-LATE-CLOSURE");Assert(store.CanChangeVisit(affected),"Closure must allow an affected visit to move even within the usual one-hour deadline");Assert(!store.CheckInVisit(affected.TicketNumber,3).ok,"Closed-office visits cannot check in");
+ var alternative=store.GetChangeSlots(affected.TicketNumber,3,new()).First();Assert(store.RescheduleVisit(new(){TicketNumber=affected.TicketNumber,ExpectedStartsAt=affected.ScheduledAt!.Value.ToString("O"),StartsAt=alternative.StartsAt.ToString("O"),Confirmed=true},3,new()).ok,"Closure exception must still recheck the new slot");
+ var continuing=store.CreateTicket("QA","09172222222","Document Request","Regular",3,"Other Document","QA-3").ticket!;Assert(store.AdvanceDocument(continuing.TicketNumber,"Processing","Started",1).ok,"Office can start processing");store.CancelVisit(continuing.TicketNumber,3);Assert(!QueueStore.ChecklistClosed(store.Snapshot().Tickets.Single(t=>t.Id==continuing.Id)),"Cancelling a queue visit must not erase processing already started by the Registrar");
+ Console.WriteLine("PASS document lifecycle, immutable requirements, owner checklist, verified release, feedback, calendar exclusions, deduplicated reminders, reports, and reload");
+}finally{Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(operationsFolder,true);}
+
 class FakeClients:IHttpClientFactory {
  public int Calls;public string Provider="gemini",ModelText="";public Uri? Url;public string? Body;public bool HasCredential;
  public HttpClient CreateClient(string name)=>new(new FakeHandler(async request=>{Calls++;Url=request.RequestUri;Body=await request.Content!.ReadAsStringAsync();HasCredential=request.Headers.Contains("x-goog-api-key")||request.Headers.Authorization?.Scheme=="Bearer";object payload=Provider=="gemini"?new{candidates=new[]{new{content=new{parts=new[]{new{text=ModelText}}}}}}:new{choices=new[]{new{message=new{content=ModelText}}}};return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(JsonSerializer.Serialize(payload),Encoding.UTF8,"application/json")};}));

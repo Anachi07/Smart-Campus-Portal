@@ -54,12 +54,13 @@ function render_header(string $title='Dashboard'): void {
 
 function render_sidebar(string $role): void {
     $uri=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
-    $active=function(string $path) use($uri): bool { $url=root_href($path);parse_str(parse_url($url,PHP_URL_QUERY)??'', $query);return $uri===parse_url($url,PHP_URL_PATH) && (!isset($query['entity']) || ($_GET['entity']??'')===$query['entity']); };
-    $link=function(array $item) use($active): void { [$path,$icon,$label]=$item; echo '<a class="nav-link '.($active($path)?'active':'').'" href="'.e(root_href($path)).'"><i class="fa-solid '.e($icon).'" aria-hidden="true"></i><span>'.e($label).'</span></a>'; };
+    $active=function(string $path) use($uri): bool { $url=str_starts_with($path,'/')?$path:root_href($path);parse_str(parse_url($url,PHP_URL_QUERY)??'', $query);return $uri===parse_url($url,PHP_URL_PATH) && (!isset($query['entity']) || ($_GET['entity']??'')===$query['entity']); };
+    $link=function(array $item) use($active): void { [$path,$icon,$label]=$item; echo '<a class="nav-link '.($active($path)?'active':'').'" href="'.e(str_starts_with($path,'/')?$path:root_href($path)).'"><i class="fa-solid '.e($icon).'" aria-hidden="true"></i><span>'.e($label).'</span></a>'; };
     $groups=[];
     if(in_array($role,['Admin','Super Admin'],true)) {
         $groups=[
             'People & access'=>[['modules/admin/manage.php?entity=students','fa-user-graduate','Students'],['modules/admin/manage.php?entity=teachers','fa-chalkboard-user','Teachers'],['modules/admin/manage.php?entity=parents','fa-users','Parents']],
+            'Office services'=>[['/Services/Requests','fa-file-lines','Document requests'],['/Services/Requirements','fa-list-check','Requirements'],['/Services/OfficeCalendar','fa-calendar-days','Office calendar'],['/Services/Report','fa-chart-simple','Service reports']],
             'Academic setup'=>[['modules/admin/manage.php?entity=courses','fa-layer-group','Courses'],['modules/admin/manage.php?entity=subjects','fa-book','Subjects'],['modules/admin/manage.php?entity=sections','fa-diagram-project','Sections'],['modules/admin/manage.php?entity=schedules','fa-clock','Class schedules'],['modules/admin/manage.php?entity=school_years','fa-school','School years']],
             'Classroom tools'=>[['modules/teacher/attendance.php','fa-calendar-check','Attendance desk'],['modules/teacher/grades.php','fa-pen','Gradebook'],['modules/shared/qr_attendance.php','fa-qrcode','ID check-in'],['modules/shared/predictive.php','fa-chart-line','Academic insights'],['modules/shared/reports.php','fa-file-export','Reports']],
             'School administration'=>[['modules/admin/knowledge.php','fa-comments','Assistant knowledge'],['modules/admin/manage.php?entity=announcements','fa-bullhorn','Announcements'],['modules/admin/manage.php?entity=events','fa-calendar-days','School events'],['modules/admin/settings.php','fa-gear','School settings'],['modules/admin/logs.php','fa-clock-rotate-left','Activity log']]
@@ -73,7 +74,7 @@ function render_sidebar(string $role): void {
 <?php $link(['dashboard.php','fa-chart-simple','Academic dashboard']); ?>
 <a class="nav-link" href="<?= in_array($role,['Admin','Super Admin'],true)?'/Admin/Dashboard':'/Queue/MyTicket' ?>"><i class="fa-solid fa-ticket"></i><span>Registrar & Cashier</span></a><button class="nav-link sidebar-assistant" type="button" data-assistant-action="open"><i class="fa-regular fa-comment-dots"></i><span>ICAS Assistant</span></button>
 <?php foreach($groups as $title=>$items): $open=!in_array($role,['Admin','Super Admin'],true)||array_filter($items,fn($item)=>$active($item[0])); ?><details class="nav-group" <?= $open?'open':'' ?>><summary><?= e($title) ?><i class="fa-solid fa-chevron-down"></i></summary><div><?php foreach($items as $item)$link($item); ?></div></details><?php endforeach; ?>
-<div class="side-section">Stay connected</div><?php $link(['modules/shared/calendar.php','fa-calendar','Calendar']);$link(['modules/shared/notifications.php','fa-bell','Notifications']);$link(['modules/student/profile.php','fa-user','My profile']); ?>
+<a class="nav-link" href="/Services/Requests"><i class="fa-solid fa-file-lines"></i><span>My service requests</span></a><div class="side-section">Stay connected</div><?php $link(['modules/shared/calendar.php','fa-calendar','Calendar']);$link(['modules/shared/notifications.php','fa-bell','Notifications']);$link(['modules/student/profile.php','fa-user','My profile']); ?>
 <div class="sidebar-school-note"><span class="school-note-mark"></span><div>ICAS Philippines<small>Learning, connected.</small></div></div></aside>
 <?php }
 

@@ -47,12 +47,13 @@ public partial class QueueStore
         var data = JsonSerializer.Deserialize<SmartQueueData>(json);
         if (data == null || data.Users == null || data.Tickets == null || data.Counters == null || data.Settings == null)
             throw new InvalidDataException("Invalid queue backup.");
+        ValidateOperationsBackup(data);
         if (data.Tickets.Any(t => t.Status == "Scheduled" && !t.ScheduledAt.HasValue)) throw new InvalidDataException("Scheduled tickets require an appointment time.");
         if (data.Users.Select(u => u.Id).Distinct().Count() != data.Users.Count || data.Tickets.Select(t => t.Id).Distinct().Count() != data.Tickets.Count)
             throw new InvalidDataException("Queue backup contains duplicate record ids.");
     }
 
-    public void Reload() { lock (_lock) { _data = LoadOrSeed(); } }
+    public void Reload() { lock (_lock) { _data = LoadOrSeed(); _reminderPauseUntil=default; } }
 
     public SmartQueueData Snapshot()
     {
@@ -225,6 +226,7 @@ public partial class QueueStore
             var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && t.RequestType == requestType && t.StudentNumber == studentNumber && (t.Status == "Waiting" || t.Status == "Now Serving" || t.Status == "Scheduled"));
             if (active != null) return (true, "You already have an active ticket for this service.", active);
 
+            if(!scheduledAt.HasValue&&CalendarBlocks(service,CampusNow,1))return(false,"This office is closed in the office calendar right now. Choose a future visit or contact the office.",null);
             var linkedUserId = ResolveCustomerUserId(phone, customerUserId);
             var ticket = new Ticket
             {
@@ -240,6 +242,7 @@ public partial class QueueStore
                 CreatedAt = DateTime.Now
             };
 
+            InitializeRequest(ticket);
             _data.Tickets.Add(ticket);
             RefreshQueuePredictionsLocked();
             AddLog("Ticket created", $"{ticket.TicketNumber} created for {ticket.CustomerName}, service: {ticket.ServiceType}, phone: {MaskPhone(phone)}, estimated wait: {ticket.EstimatedWaitText}.");
@@ -377,7 +380,7 @@ public partial class QueueStore
             RefreshQueuePredictionsLocked();
             var counter = _data.Counters.FirstOrDefault(c => c.Name == counterName && c.Status == "Available");
             if (counter == null || _data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == counterName)) return null;
-            var next = WaitingOrdered().FirstOrDefault(t => counter.Office == "All Services" || CampusServices.OfficeFor(t.ServiceType) == counter.Office);
+            var next = WaitingOrdered().FirstOrDefault(t => (counter.Office == "All Services" || CampusServices.OfficeFor(t.ServiceType) == counter.Office)&&!CalendarBlocks(t.ServiceType,CampusNow,1));
             if (next == null) return null;
 
             counter.Status = "Serving";
@@ -388,15 +391,7 @@ public partial class QueueStore
             NotifyCustomer(next, "Now serving", $"Now serving {next.TicketNumber} at {next.CounterName}. Please proceed to the counter.", "serving");
             RefreshQueuePredictionsLocked();
 
-            if (_data.Settings.NotifyOnAlmostNext)
-            {
-                var position = Math.Max(1, _data.Settings.AlmostNextPosition);
-                var almostNext = WaitingOrdered().Skip(position - 1).FirstOrDefault();
-                if (almostNext != null)
-                {
-                    NotifyCustomer(almostNext, "Almost next", $"Your ticket {almostNext.TicketNumber} is almost next. Updated estimated waiting time: {almostNext.EstimatedWaitText}. Please stay nearby.", "almost-next");
-                }
-            }
+            ProcessRemindersLocked(CampusNow);
 
             RefreshQueuePredictionsLocked();
             Save();
@@ -448,6 +443,7 @@ public partial class QueueStore
             var ticket = _data.Tickets.FirstOrDefault(t => NormalizeTicketKey(t.TicketNumber) == NormalizeTicketKey(ticketNumber));
             if (ticket == null || ticket.Status != "Skipped") return false;
             ticket.Status = "Waiting";
+            ticket.AlmostNextReminded=false;
             ticket.CounterName = string.Empty;
             ticket.CalledAt = null;
             ticket.SkippedAt = null;
@@ -590,7 +586,7 @@ public partial class QueueStore
         var recommendation = RecommendBestVisitTimeLocked();
         var queueLength = _data.Tickets.Count(t => t.Status == "Waiting");
         foreach (var ticket in WaitingOrdered().ToList()) {
-            var eligible = Enumerable.Range(0,activeCounters.Count).Where(i => activeCounters[i].Office == "All Services" || activeCounters[i].Office == CampusServices.OfficeFor(ticket.ServiceType)).ToList();
+            var eligible = Enumerable.Range(0,activeCounters.Count).Where(i => (activeCounters[i].Office == "All Services" || activeCounters[i].Office == CampusServices.OfficeFor(ticket.ServiceType))&&!CalendarBlocks(ticket.ServiceType,CampusNow,1)).ToList();
             if (!eligible.Any()) {
                 ticket.EstimatedWaitText="Awaiting office availability"; ticket.EstimatedWaitMinutes=0; ticket.EstimatedServiceStartAt=null; ticket.PredictedCounterName="Awaiting " + CampusServices.OfficeFor(ticket.ServiceType); ticket.BestVisitTime=recommendation;
                 ticket.AiInsight="The office has no active counter. Staff will update availability."; continue;
@@ -907,6 +903,8 @@ public partial class QueueStore
                     loaded.Tickets ??= new List<Ticket>();
                     loaded.Counters ??= new List<Counter>();
                     loaded.VisitExchanges ??= new();
+                    loaded.ServiceRequirements ??= new();loaded.OfficeClosures ??= new();loaded.Feedback ??= new();
+                    var operationsChanged=InitializeLegacyOperations(loaded);
                     loaded.SmsNotifications ??= new List<SmsNotification>();
                     loaded.AccountNotifications ??= new List<AccountNotification>();
                     loaded.ActivityLogs ??= new List<ActivityLog>();
@@ -914,7 +912,7 @@ public partial class QueueStore
 
                     var changed = false;
                     changed |= EnsureDefaultAdmin(loaded);
-                    changed |= ExpireOldTickets(loaded);
+                    changed |= ExpireOldTickets(loaded);changed |= operationsChanged;
                     EnsureDefaultSettings(loaded.Settings);
                     EnsureDefaultCounters(loaded);
                     changed |= EnsureCampusOffices(loaded);

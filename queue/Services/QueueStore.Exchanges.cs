@@ -56,7 +56,7 @@ public partial class QueueStore
             if(!ParseVisitTime(request.StartsAt,out var at))return(false,"Choose an available time.",null);
             if(ticket.ScheduledAt==at)return(true,"Your reservation already has this time.",ticket);
             if(!Expected(ticket,request.ExpectedStartsAt))return(false,"Your reservation changed. Refresh My requests before continuing.",null);
-            if(ticket.ScheduledAt<CampusNow.AddHours(1))return(false,"Changes close one hour before your current visit. Contact the office.",null);
+            if(!CanChangeVisit(ticket))return(false,"Changes close one hour before your current visit. Contact the office.",null);
             if(!AvailableAfterRemoving(ticket,at,classes,new(){ticket.TicketNumber}))return(false,"That time is unavailable or conflicts with your saved schedule. Choose another time, or request a voluntary exchange.",null);
             InvalidateExchangesLocked(ticket.TicketNumber);ticket.ScheduledAt=at;ticket.BookingKey="";
             ExchangeNotice(ticket,"Visit rescheduled",$"Your visit is now {at:MMM d, yyyy h:mm tt} Manila time. Check-in rules still apply.");
@@ -64,7 +64,7 @@ public partial class QueueStore
         }
     }
     public List<BookingSlot> GetChangeSlots(string number,int userId,List<CampusClass> classes) {
-        lock(_lock) {RefreshExchangesLocked();var ticket=OwnedReservation(number,userId);return ticket==null||ticket.ScheduledAt<CampusNow.AddHours(1)?new():SlotsLocked(ticket.ServiceType,null,userId,classes,new(){ticket.TicketNumber}).Where(s=>s.StartsAt!=ticket.ScheduledAt).ToList();}
+        lock(_lock) {RefreshExchangesLocked();var ticket=OwnedReservation(number,userId);return ticket==null||!CanChangeVisit(ticket)?new():SlotsLocked(ticket.ServiceType,null,userId,classes,new(){ticket.TicketNumber}).Where(s=>s.StartsAt!=ticket.ScheduledAt).ToList();}
     }
     public List<ExchangeTime> GetExchangeTimes(string number,int userId,List<CampusClass> classes) {
         lock(_lock) {

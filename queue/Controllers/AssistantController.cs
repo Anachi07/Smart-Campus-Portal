@@ -17,7 +17,7 @@ public class AssistantController : Controller
         var guest=HttpContext.Session.GetString("AssistantGuest");if(guest==null){guest=Guid.NewGuid().ToString("N");HttpContext.Session.SetString("AssistantGuest",guest);}
         return !_throttle.Allow(action+":"+(UserId?.ToString()??guest),limit,TimeSpan.FromMinutes(10));
     }
-    private object BookingView(Ticket t)=>new {t.TicketNumber,t.ServiceType,t.RequestType,t.StudentNumber,t.Status,t.Office,t.ScheduledAt,t.CheckedInAt,t.EstimatedWaitText,t.CounterName,t.RequestNotes,canCheckIn=t.Status=="Scheduled"&&t.ScheduledAt.HasValue&&QueueStore.CampusNow>=t.ScheduledAt.Value.AddMinutes(-15)&&QueueStore.CampusNow<=t.ScheduledAt.Value.AddMinutes(30),canCancel=t.Status is "Scheduled" or "Waiting",canChange=t.Status=="Scheduled"&&t.ScheduledAt>=QueueStore.CampusNow.AddHours(1),ticketUrl=Url.Action("Ticket","Queue",new{id=t.TicketNumber})};
+    private object BookingView(Ticket t)=>new {t.TicketNumber,t.ServiceType,t.RequestType,t.StudentNumber,t.Status,t.Office,t.ScheduledAt,t.CheckedInAt,t.EstimatedWaitText,t.CounterName,t.RequestNotes,t.DocumentStatus,canCheckIn=t.Status=="Scheduled"&&t.ScheduledAt.HasValue&&QueueStore.CampusNow>=t.ScheduledAt.Value.AddMinutes(-15)&&QueueStore.CampusNow<=t.ScheduledAt.Value.AddMinutes(30),canCancel=t.Status is "Scheduled" or "Waiting",canChange=_store.CanChangeVisit(t),ticketUrl=Url.Action("Ticket","Queue",new{id=t.TicketNumber})};
     [HttpGet]
     public IActionResult Context() {
         var settings=_store.Snapshot().Settings;

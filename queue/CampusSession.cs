@@ -26,6 +26,7 @@ public class CampusSession
                 if (context.Request.Query["validate"] == "1") {
                     using var reader = new StreamReader(context.Request.Body);
                     QueueStore.ValidateBackup(await reader.ReadToEndAsync());
+                    store.PauseRemindersForRestore();
                 } else store.Reload();
                 context.Response.StatusCode=204;
             } catch (Exception error) when (error is JsonException or InvalidDataException) { context.Response.StatusCode=400; }

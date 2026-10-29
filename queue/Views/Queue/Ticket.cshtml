@@ -25,6 +25,7 @@
         </div>
     </div>
     <div class="actions center no-print">
+        <a class="btn btn-soft" href="/Services/Request?id=@Uri.EscapeDataString(Model.TicketNumber)">Requirements & progress</a>
         <button class="btn btn-animated" onclick="window.print()">Print Ticket</button>
         <a class="btn btn-soft" asp-controller="Queue" asp-action="MyTicket" asp-route-searchText="@Model.TicketNumber">Track Status</a>
         <a class="btn btn-soft" asp-controller="Queue" asp-action="GetTicket">New Ticket</a>

@@ -30,7 +30,7 @@ public partial class QueueStore
             for(var minute=_data.Settings.BusinessStartHour*60;minute+step<=_data.Settings.BusinessEndHour*60;minute+=step) {
                 var local=day.ToDateTime(TimeOnly.MinValue).AddMinutes(minute);
                 var at=new DateTimeOffset(local,CampusZone.GetUtcOffset(local));
-                if(at<now.AddHours(1) || ConflictsWithClass(at,service,classes)) continue;
+                if(at<now.AddHours(1) || CalendarBlocks(service,at,Math.Max(step,EstimateServiceMinutes(service,"Regular"))) || ConflictsWithClass(at,service,classes)) continue;
                 var active=_data.Tickets.Where(t => t.ScheduledAt.HasValue && !(exclude?.Contains(t.TicketNumber)??false) && (t.Status is "Scheduled" or "Waiting" or "Now Serving")).ToList();
                 if(active.Any(t => t.CustomerUserId==userId && Math.Abs((t.ScheduledAt!.Value-at).TotalMinutes)<step)) continue;
                 var occupied=active.Count(t => t.Office==CampusServices.OfficeFor(service) && t.ScheduledAt==at);
@@ -75,6 +75,7 @@ public partial class QueueStore
             if(ticket.Status=="Waiting" && ticket.CheckedInAt.HasValue) return(true,"You are already checked in.");
             var now=CampusNow;
             if(ticket.Status!="Scheduled" || !ticket.ScheduledAt.HasValue || now<ticket.ScheduledAt.Value.AddMinutes(-15) || now>ticket.ScheduledAt.Value.AddMinutes(30)) return(false,"Check in from 15 minutes before until 30 minutes after your reserved time.");
+            if(CalendarBlocks(ticket.ServiceType,ticket.ScheduledAt.Value,_data.Settings.AppointmentSlotMinutes))return(false,"Your visit overlaps an office closure. Choose a new visit time or contact the office.");
             InvalidateExchangesLocked(ticket.TicketNumber);
             ticket.Status="Waiting";ticket.CheckedInAt=now.DateTime;RefreshQueuePredictionsLocked();
             AddLog("Appointment check-in",$"{ticket.TicketNumber} joined the {ticket.Office} queue.");Save();return(true,"You are checked in. Watch your ticket for the counter call.");

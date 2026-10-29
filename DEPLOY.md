@@ -53,3 +53,7 @@ See [ASSISTANT.md](ASSISTANT.md) for published school facts, appointment rules, 
 ## Super Admin upgrade
 
 Back up before redeploying. The first upgrade promotes the oldest active Admin account to Super Admin once and preserves its existing login. Sign in again after deployment. Account creation, approvals, role changes, password resets for other users, and full backup/restore move to **Account governance → Accounts & approvals** (and its adjacent backup links). Regular Admin remains available as a separate role the Super Admin can assign. Pending self-registrations cannot sign in until approved. Old backups without the Super Admin migration marker are migrated on first use; migrated backups must contain an active Super Admin.
+
+## Campus services upgrade
+
+Document tracking, checklist definitions/snapshots, office closures, feedback, and reminder deduplication markers are stored with queue data and included in full workspace backups. Old backups without these fields remain supported. Existing document tickets are imported for review; queue completion alone does not establish document release. After deployment, authorized office staff configure **Requirements** and **Office calendar** in the Registrar/Cashier workspace. The reminder worker runs inside the same web service and does not create a paid worker, database, or messaging service. It cannot send timely reminders while a free instance is sleeping. Back up before redeployment because free storage remains ephemeral.
