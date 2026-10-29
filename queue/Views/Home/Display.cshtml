@@ -18,4 +18,4 @@
     </div>
     <p class="school-display-note">Please prepare your school ID and wait for your number to be called. This display contains queue information only, not payment or document-release confirmation.</p>
 </section>
-@section Scripts { <script>setTimeout(()=>window.location.reload(),10000);</script> }
+@section Scripts { <script>setInterval(()=>{if(!window.ICASAssistant?.isOpen && !document.hidden)window.location.reload();},10000);</script> }

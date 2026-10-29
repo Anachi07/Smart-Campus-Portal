@@ -1,8 +1,9 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using SmartQueueSystemGUI.Services;
+using SmartQueueSystemGUI.Models;
 
-public record CampusIdentity(int Id, string FullName, string Role, string Phone, string Csrf, string StudentNumber);
+public record CampusIdentity(int Id, string FullName, string Role, string Phone, string Csrf, string StudentNumber, List<CampusClass>? Classes);
 public class CampusSession
 {
     private readonly RequestDelegate _next;
@@ -52,6 +53,7 @@ public class CampusSession
             context.Session.SetString("PhoneNumber", user.PhoneNumber);
             context.Session.SetString("CampusCsrf", identity.Csrf);
             context.Session.SetString("StudentNumber", identity.StudentNumber);
+            context.Session.SetString("CampusClasses", JsonSerializer.Serialize(identity.Classes ?? new()));
         }
         if (path == "/") { context.Response.Redirect("/sims/dashboard.php"); return; }
         // Identity and role management belongs to SIMS; queue-local passwords cannot bypass it.

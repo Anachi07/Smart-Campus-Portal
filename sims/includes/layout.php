@@ -48,74 +48,32 @@ function render_header(string $title='Dashboard'): void {
         </div>
     </nav>
     <div class="page-body">
-        <?php if(campus_mode()==='demo'): ?><div class="workspace-note"><span class="status-dot"></span> Demo workspace <span>Sample data · Records may reset after a redeploy</span></div><?php endif; ?>
+
         <?= flash() ?>
 <?php }
 
-function render_sidebar(string $role): void { 
-    $baseLinks = [ ['dashboard.php','fa-house','Dashboard'], ['modules/shared/calendar.php','fa-calendar','Calendar'], ['modules/shared/notifications.php','fa-bell','Notifications'] ];
-    $links = $baseLinks;
-    if ($role === 'Admin') {
-        $links = array_merge($links, [
-            ['modules/admin/manage.php?entity=students','fa-user-graduate','Students'],
-            ['modules/admin/manage.php?entity=teachers','fa-chalkboard-user','Teachers'],
-            ['modules/admin/manage.php?entity=parents','fa-users','Parents'],
-            ['modules/admin/manage.php?entity=courses','fa-layer-group','Courses'],
-            ['modules/admin/manage.php?entity=subjects','fa-book','Subjects'],
-            ['modules/admin/manage.php?entity=sections','fa-diagram-project','Sections'],
-            ['modules/admin/manage.php?entity=school_years','fa-school','School Years'],
-            ['modules/admin/manage.php?entity=schedules','fa-clock','Class Schedules'],
-            ['modules/admin/manage.php?entity=events','fa-calendar-days','Calendar Events'],
-            ['modules/admin/manage.php?entity=users','fa-user-shield','Users & Roles'],
-            ['modules/admin/manage.php?entity=announcements','fa-bullhorn','Announcements'],
-            ['modules/teacher/attendance.php','fa-calendar-check','Attendance Desk'],
-            ['modules/shared/qr_attendance.php','fa-qrcode','ID Check-in'],
-            ['modules/shared/predictive.php','fa-chart-line','Academic Insights'],
-            ['modules/shared/reports.php','fa-file-export','Reports'],
-            ['modules/admin/backup.php','fa-database','Backup Database'],
-            ['modules/admin/restore.php','fa-upload','Restore Database'],
-            ['modules/admin/logs.php','fa-clock-rotate-left','Activity Logs'],
-            ['modules/admin/settings.php','fa-gear','Settings']
-        ]);
-    } elseif ($role === 'Teacher') {
-        $links = array_merge($links, [
-            ['modules/teacher/students.php','fa-user-graduate','My Students'],
-
-            ['modules/teacher/grades.php','fa-pen-to-square','Encode Grades'],
-            ['modules/teacher/announcements.php','fa-bullhorn','Announcements'],
-            ['modules/teacher/at_risk.php','fa-triangle-exclamation','At-Risk Students'],
-            ['modules/teacher/attendance.php','fa-calendar-check','Attendance Desk'],
-            ['modules/shared/qr_attendance.php','fa-qrcode','ID Check-in'],
-            ['modules/shared/reports.php','fa-file-export','Reports']
-        ]);
-    } elseif ($role === 'Student') {
-        $links = array_merge($links, [
-            ['modules/student/grades.php','fa-ranking-star','My Grades'],
-            ['modules/student/attendance.php','fa-calendar-check','My Attendance'],
-            ['modules/student/subjects.php','fa-book-open','My Subjects'],
-            ['modules/student/schedule.php','fa-clock','My Schedule'],
-            ['modules/student/profile.php','fa-id-card','Profile'],
-            ['modules/student/reports.php','fa-download','Download Reports']
-        ]);
-    } elseif ($role === 'Parent') {
-        $links = array_merge($links, [
-            ['modules/parent/monitor.php','fa-child','Student Monitoring'],
-            ['modules/shared/reports.php','fa-file-export','Reports']
-        ]);
-    }
+function render_sidebar(string $role): void {
+    $uri=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
+    $active=function(string $path) use($uri): bool { $url=root_href($path);parse_str(parse_url($url,PHP_URL_QUERY)??'', $query);return $uri===parse_url($url,PHP_URL_PATH) && (!isset($query['entity']) || ($_GET['entity']??'')===$query['entity']); };
+    $link=function(array $item) use($active): void { [$path,$icon,$label]=$item; echo '<a class="nav-link '.($active($path)?'active':'').'" href="'.e(root_href($path)).'"><i class="fa-solid '.e($icon).'" aria-hidden="true"></i><span>'.e($label).'</span></a>'; };
+    $groups=[];
+    if($role==='Admin') {
+        $groups=[
+            'People & access'=>[['modules/admin/manage.php?entity=students','fa-user-graduate','Students'],['modules/admin/manage.php?entity=teachers','fa-chalkboard-user','Teachers'],['modules/admin/manage.php?entity=parents','fa-users','Parents'],['modules/admin/manage.php?entity=users','fa-user-shield','Accounts & roles']],
+            'Academic setup'=>[['modules/admin/manage.php?entity=courses','fa-layer-group','Courses'],['modules/admin/manage.php?entity=subjects','fa-book','Subjects'],['modules/admin/manage.php?entity=sections','fa-diagram-project','Sections'],['modules/admin/manage.php?entity=schedules','fa-clock','Class schedules'],['modules/admin/manage.php?entity=school_years','fa-school','School years']],
+            'Classroom tools'=>[['modules/teacher/attendance.php','fa-calendar-check','Attendance desk'],['modules/teacher/grades.php','fa-pen','Gradebook'],['modules/shared/qr_attendance.php','fa-qrcode','ID check-in'],['modules/shared/predictive.php','fa-chart-line','Academic insights'],['modules/shared/reports.php','fa-file-export','Reports']],
+            'School administration'=>[['modules/admin/knowledge.php','fa-comments','Assistant knowledge'],['modules/admin/manage.php?entity=announcements','fa-bullhorn','Announcements'],['modules/admin/manage.php?entity=events','fa-calendar-days','School events'],['modules/admin/settings.php','fa-gear','School settings'],['modules/admin/backup.php','fa-database','Backup workspace'],['modules/admin/restore.php','fa-upload','Restore workspace'],['modules/admin/logs.php','fa-clock-rotate-left','Activity log']]
+        ];
+    } elseif($role==='Teacher') $groups=['My classroom'=>[['modules/teacher/students.php','fa-user-graduate','My students'],['modules/teacher/attendance.php','fa-calendar-check','Attendance'],['modules/teacher/grades.php','fa-pen','Gradebook'],['modules/shared/qr_attendance.php','fa-qrcode','ID check-in'],['modules/teacher/announcements.php','fa-bullhorn','Announcements'],['modules/shared/reports.php','fa-file-export','Reports']]];
+    elseif($role==='Student') $groups=['My academics'=>[['modules/student/grades.php','fa-ranking-star','My grades'],['modules/student/attendance.php','fa-calendar-check','My attendance'],['modules/student/schedule.php','fa-clock','My schedule'],['modules/student/subjects.php','fa-book-open','My subjects'],['modules/student/reports.php','fa-file-export','My reports']]];
+    elseif($role==='Parent') $groups=['Student progress'=>[['modules/parent/monitor.php','fa-child','Linked student'],['modules/shared/reports.php','fa-file-export','Reports']]];
 ?>
-<aside class="sidebar" id="sidebar">
-    <a class="brand" href="<?= root_href('dashboard.php') ?>"><img src="/sims/brand-logo.php" alt="ICAS Philippines"><div><strong><?= e(setting('school_name','ICAS Philippines')) ?></strong><span>CAMPUS PORTAL</span></div></a>
-    <div class="side-section">Your campus</div>
-    <a class="nav-link <?= parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)==='/portal'?'active':'' ?>" href="/portal"><i class="fa-solid fa-house"></i> Campus Overview</a>
-    <a class="nav-link" href="<?= $role === 'Admin' ? '/Admin/Dashboard' : '/Queue/GetTicket' ?>"><i class="fa-solid fa-ticket"></i> SmartQueue</a>
-    <div class="side-section">Student Information</div>
-    <ul class="nav flex-column">
-        <?php foreach($links as $l): ?>
-        <li class="nav-item"><a class="nav-link <?= parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)===parse_url(root_href($l[0]),PHP_URL_PATH) && (!str_contains($l[0],'entity=') || str_contains($_SERVER['REQUEST_URI'],explode('?',$l[0])[1]))?'active':'' ?>" href="<?= e(root_href($l[0])) ?>"><i class="fa-solid <?= e($l[1]) ?>"></i><span><?= e($l[2]) ?></span></a></li>
-        <?php endforeach; ?>
-    </ul>
-<div class="sidebar-school-note"><span class="school-note-mark"></span><div>ICAS Philippines<small>Connected campus experience</small></div></div></aside>
+<aside class="sidebar" id="sidebar"><a class="brand" href="/portal"><img src="/sims/brand-logo.php" alt="ICAS Philippines"><div><strong><?= e(setting('school_name','ICAS Philippines')) ?></strong><span>CAMPUS PORTAL</span></div></a><div class="side-section">My workspace</div><a class="nav-link <?= $uri==='/portal'?'active':'' ?>" href="/portal"><i class="fa-solid fa-house"></i><span>Overview</span></a>
+<?php $link(['dashboard.php','fa-chart-simple','Academic dashboard']); ?>
+<a class="nav-link" href="<?= $role==='Admin'?'/Admin/Dashboard':'/Queue/MyTicket' ?>"><i class="fa-solid fa-ticket"></i><span>Registrar & Cashier</span></a><button class="nav-link sidebar-assistant" type="button" data-assistant-action="open"><i class="fa-regular fa-comment-dots"></i><span>ICAS Assistant</span></button>
+<?php foreach($groups as $title=>$items): $open=$role!=='Admin'||array_filter($items,fn($item)=>$active($item[0])); ?><details class="nav-group" <?= $open?'open':'' ?>><summary><?= e($title) ?><i class="fa-solid fa-chevron-down"></i></summary><div><?php foreach($items as $item)$link($item); ?></div></details><?php endforeach; ?>
+<div class="side-section">Stay connected</div><?php $link(['modules/shared/calendar.php','fa-calendar','Calendar']);$link(['modules/shared/notifications.php','fa-bell','Notifications']);$link(['modules/student/profile.php','fa-user','My profile']); ?>
+<div class="sidebar-school-note"><span class="school-note-mark"></span><div>ICAS Philippines<small>Learning, connected.</small></div></div></aside>
 <?php }
 
 function render_footer(): void { ?>
@@ -125,6 +83,7 @@ function render_footer(): void { ?>
 <script src="/sims/assets/js/bootstrap.bundle.min.js"></script>
 <script src="/sims/assets/js/chart.umd.min.js"></script>
 <script src="<?= asset('js/app.js') ?>"></script>
+<link rel="stylesheet" href="/sims/assets/css/assistant.css"><script src="/sims/assets/js/assistant.js" defer></script>
 </body>
 </html>
 <?php }

@@ -5,7 +5,7 @@ using SmartQueueSystemGUI.Models;
 
 namespace SmartQueueSystemGUI.Services;
 
-public class QueueStore
+public partial class QueueStore
 {
     private readonly object _lock = new();
     private readonly string _filePath;
@@ -47,6 +47,7 @@ public class QueueStore
         var data = JsonSerializer.Deserialize<SmartQueueData>(json);
         if (data == null || data.Users == null || data.Tickets == null || data.Counters == null || data.Settings == null)
             throw new InvalidDataException("Invalid queue backup.");
+        if (data.Tickets.Any(t => t.Status == "Scheduled" && !t.ScheduledAt.HasValue)) throw new InvalidDataException("Scheduled tickets require an appointment time.");
         if (data.Users.Select(u => u.Id).Distinct().Count() != data.Users.Count || data.Tickets.Select(t => t.Id).Distinct().Count() != data.Tickets.Count)
             throw new InvalidDataException("Queue backup contains duplicate record ids.");
     }
@@ -208,7 +209,7 @@ public class QueueStore
         }
     }
 
-    public (bool ok, string message, Ticket? ticket) CreateTicket(string customerName, string phone, string service, string priority, int? customerUserId = null, string requestType = "", string studentNumber = "", string requestNotes = "")
+    public (bool ok, string message, Ticket? ticket) CreateTicket(string customerName, string phone, string service, string priority, int? customerUserId = null, string requestType = "", string studentNumber = "", string requestNotes = "", DateTimeOffset? scheduledAt = null, string bookingKey = "")
     {
         phone = NormalizePhone(phone);
         lock (_lock)
@@ -221,7 +222,7 @@ public class QueueStore
             if ((service == "Document Request" || service == "Tuition Payment") && studentNumber.Length < 3) return (false, "Enter the student number for this request. The office will verify the record.", null);
             if (requestNotes.Length > 400) return (false, "Keep your request notes within 400 characters.", null);
             if (!new[] { "Regular", "Priority" }.Contains(priority)) return (false, "Choose a valid priority type.", null);
-            var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && t.RequestType == requestType && t.StudentNumber == studentNumber && (t.Status == "Waiting" || t.Status == "Now Serving"));
+            var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && t.RequestType == requestType && t.StudentNumber == studentNumber && (t.Status == "Waiting" || t.Status == "Now Serving" || t.Status == "Scheduled"));
             if (active != null) return (true, "You already have an active ticket for this service.", active);
 
             var linkedUserId = ResolveCustomerUserId(phone, customerUserId);
@@ -235,14 +236,15 @@ public class QueueStore
                 ServiceType = service.Trim(),
                 RequestType = requestType, StudentNumber = studentNumber, RequestNotes = requestNotes,
                 PriorityType = string.IsNullOrWhiteSpace(priority) ? "Regular" : priority.Trim(),
-                Status = "Waiting",
+                Status = scheduledAt.HasValue ? "Scheduled" : "Waiting", ScheduledAt = scheduledAt, BookingKey = bookingKey,
                 CreatedAt = DateTime.Now
             };
 
             _data.Tickets.Add(ticket);
             RefreshQueuePredictionsLocked();
             AddLog("Ticket created", $"{ticket.TicketNumber} created for {ticket.CustomerName}, service: {ticket.ServiceType}, phone: {MaskPhone(phone)}, estimated wait: {ticket.EstimatedWaitText}.");
-            NotifyCustomer(ticket, "Ticket created", $"Your queue ticket {ticket.TicketNumber} has been created for {ticket.ServiceType}. Estimated waiting time: {ticket.EstimatedWaitText}. Best time to visit today: {ticket.BestVisitTime}.", "created");
+            if (scheduledAt.HasValue) NotifyCustomer(ticket, "Visit reserved", $"Your {CampusServices.OfficeFor(service)} visit is reserved for {scheduledAt:MMM dd, yyyy hh:mm tt}. Check in between 15 minutes before and 30 minutes after your appointment.", "created");
+            else NotifyCustomer(ticket, "Ticket created", $"Your queue ticket {ticket.TicketNumber} has been created for {ticket.ServiceType}. Estimated waiting time: {ticket.EstimatedWaitText}. Best time to visit today: {ticket.BestVisitTime}.", "created");
             NotifyCustomerService(ticket, "New customer ticket", $"New ticket {ticket.TicketNumber} for {ticket.ServiceType}. Estimated wait: {ticket.EstimatedWaitText}. Suggested counter: {ticket.PredictedCounterName}.", "created");
             Save();
             return (true, "Ticket created successfully.", ticket);
@@ -546,6 +548,11 @@ public class QueueStore
             _data.Settings.PriorityBoostMinutes = Math.Clamp(settings.PriorityBoostMinutes, 0, 60);
             _data.Settings.BusinessStartHour = Math.Clamp(settings.BusinessStartHour, 0, 23);
             _data.Settings.BusinessEndHour = Math.Clamp(settings.BusinessEndHour, _data.Settings.BusinessStartHour + 1, 24);
+            _data.Settings.EnableAppointments = settings.EnableAppointments;
+            _data.Settings.AppointmentSlotMinutes = new[] {15,30,60}.Contains(settings.AppointmentSlotMinutes) ? settings.AppointmentSlotMinutes : 30;
+            _data.Settings.MaxBookingsPerSlot = Math.Clamp(settings.MaxBookingsPerSlot,1,10);
+            _data.Settings.AdvanceBookingDays = Math.Clamp(settings.AdvanceBookingDays,1,30);
+            _data.Settings.BookingDays = (settings.BookingDays ?? new()).Where(d => d>=0 && d<=6).Distinct().ToList();
             _data.Settings.LowTrafficThreshold = Math.Clamp(settings.LowTrafficThreshold, 0, 1000);
             RefreshQueuePredictionsLocked();
             AddLog("Settings updated", "Admin updated notification, waiting-time, and visit-time recommendation settings.");
@@ -558,7 +565,7 @@ public class QueueStore
         return _data.Tickets
             .Where(t => t.Status == "Waiting")
             .OrderByDescending(t => string.Equals(t.PriorityType, "Priority", StringComparison.OrdinalIgnoreCase))
-            .ThenBy(t => t.CreatedAt);
+            .ThenBy(t => t.CheckedInAt ?? t.CreatedAt);
     }
 
 
@@ -605,6 +612,11 @@ public class QueueStore
             ticket.AiInsight = "Your ticket is being served now.";
         }
 
+        foreach (var ticket in _data.Tickets.Where(t => t.Status == "Scheduled")) {
+            ticket.EstimatedWaitText="Scheduled visit"; ticket.EstimatedServiceStartAt=ticket.ScheduledAt?.LocalDateTime;
+            ticket.PredictedCounterName=CampusServices.OfficeFor(ticket.ServiceType);ticket.BestVisitTime="Your reserved visit time";
+            ticket.AiInsight="Check in when you arrive. Service time may vary with the office queue.";
+        }
         foreach (var ticket in _data.Tickets.Where(t => t.Status == "Served"))
         {
             ticket.EstimatedWaitText = "Completed";
@@ -869,8 +881,11 @@ public class QueueStore
 
     private static bool ExpireOldTickets(SmartQueueData data) {
         var changed=false;
-        foreach(var ticket in data.Tickets.Where(t => t.CreatedAt.Date < DateTime.Today && (t.Status == "Waiting" || t.Status == "Now Serving"))) {
+        foreach(var ticket in data.Tickets.Where(t => (t.ScheduledAt?.Date ?? t.CreatedAt.Date) < DateTime.Today && (t.Status == "Waiting" || t.Status == "Now Serving"))) {
             ticket.Status="Expired"; ticket.EstimatedWaitText="Expired"; changed=true;
+        }
+        foreach(var ticket in data.Tickets.Where(t => t.Status == "Scheduled" && t.ScheduledAt.HasValue && t.ScheduledAt.Value.AddMinutes(30) < DateTimeOffset.Now)) {
+            ticket.Status="Expired";ticket.EstimatedWaitText="Appointment expired";changed=true;
         }
         foreach(var counter in data.Counters.Where(c => c.Status == "Serving" && !data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == c.Name))) {
             counter.Status="Available"; changed=true;
@@ -939,6 +954,7 @@ public class QueueStore
 
     private static void EnsureDefaultSettings(AppSettings settings)
     {
+        settings.BookingDays ??= new() {1,2,3,4,5};
         if (string.IsNullOrWhiteSpace(settings.EstablishmentName) || settings.EstablishmentName == "SmartQueueSystemGUI") settings.EstablishmentName = "ICAS Philippines";
         if (string.IsNullOrWhiteSpace(settings.SmsProviderName)) settings.SmsProviderName = "Phone Gateway";
         if (settings.AlmostNextPosition < 1) settings.AlmostNextPosition = 1;

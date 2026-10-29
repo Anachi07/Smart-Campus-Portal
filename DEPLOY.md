@@ -11,7 +11,7 @@ The Blueprint selects a free service; inspect the provider's current terms befor
 
 ## Demo behavior
 
-The free setup uses an ephemeral filesystem. Records and queue tickets can reset when the service is replaced or restarted. Free services may sleep when idle. Use sample data only. This is a demo, with the existing demo credentials from README.md, not a school production deployment.
+The free setup uses an ephemeral filesystem. Records and queue tickets can reset when the service is replaced or restarted. Free services may sleep when idle. Use sample data only. This is a demo, with privately managed sample accounts, not a school production deployment.
 
 The app exposes only the gateway port. PHP and ASP.NET Core listen internally. `/health` checks the queue application and its PHP session service. HTTPS cookies are enabled through `CAMPUS_PUBLIC_HTTPS=1`; leave it unset when testing over local HTTP.
 
@@ -45,3 +45,7 @@ The Blueprint stays on `plan: free` and explicitly sets `CAMPUS_MODE=demo`. Push
 Before updating, download **Backup workspace** in the admin portal if you need existing demo changes. After a redeploy on ephemeral storage, sign in to the fresh demo and use **Restore workspace** to upload the full JSON backup. Academic records and queue data are restored together. Restore requires typing `RESTORE`, validates the files, creates safety copies, and signs out existing sessions.
 
 The ICAS release uses a green, white, and yellow school theme with the supplied-reference logo asset. Public, academic, and Registrar/Cashier interfaces share the same school identity. No real student data should be entered into this free demo.
+
+## Assistant configuration
+
+See [ASSISTANT.md](ASSISTANT.md) for published school facts, appointment rules, and optional server-side AI configuration. No provider key is committed or required for school-guide answers and queue scheduling.

@@ -29,8 +29,8 @@ auth_header('Welcome back'); ?>
 <?php if(isset($_GET['timeout'])): ?><div class="alert alert-warning">Your session expired. Please sign in again.</div><?php endif; ?>
 <form method="post" class="auth-form"><?= csrf_field() ?>
 <label for="username">Username / student number</label><input id="username" name="username" class="form-control" value="<?= e($username) ?>" maxlength="80" autocomplete="username" required autofocus>
-<label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" class="form-control" autocomplete="current-password" maxlength="200" required><button type="button" data-password-toggle="password" aria-label="Show password">Show</button></div>
+<label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" class="form-control" autocomplete="current-password" maxlength="200" required></div>
 <p class="small text-muted mt-3">Forgot your password? Ask your school administrator to reset it.</p>
 <button class="btn btn-primary w-100" type="submit">Sign in <span aria-hidden="true">→</span></button></form>
-<?php if(campus_mode()==='demo'): ?><div class="demo-note"><strong>Explore the demo</strong><p>Admin: <code>ADMIN</code> / <code>ADMIN</code><br>Student: <code>2024-0002</code> / <code>student123</code></p><small>Sample accounts only. Demo records may reset after a redeploy.</small></div><p class="small text-muted mt-3">New student? <a href="register.php">Create a demo student account</a></p><?php endif; ?>
+<?php if(campus_mode()==='demo'): ?><p class="small text-muted mt-3">Need a student account? <a href="register.php">Create an account</a></p><?php endif; ?>
 <?php auth_footer(); ?>

@@ -31,5 +31,10 @@ public class AppSettings
     public int PriorityBoostMinutes { get; set; } = 2;
     public int BusinessStartHour { get; set; } = 8;
     public int BusinessEndHour { get; set; } = 17;
+    public bool EnableAppointments { get; set; } = true;
+    public int AppointmentSlotMinutes { get; set; } = 30;
+    public int MaxBookingsPerSlot { get; set; } = 3;
+    public int AdvanceBookingDays { get; set; } = 14;
+    public List<int> BookingDays { get; set; } = new() { 1,2,3,4,5 };
     public int LowTrafficThreshold { get; set; } = 3;
 }

@@ -10,6 +10,7 @@
         <div class="ticket-line"><span>Name</span><strong>@Model.CustomerName</strong></div>
         <div class="ticket-line"><span>Phone</span><strong>@QueueStore.MaskPhone(Model.PhoneNumber)</strong></div>
         <div class="ticket-line"><span>Service</span><strong>@Model.ServiceType</strong></div>
+        @if(Model.ScheduledAt.HasValue) { <div class="ticket-line"><span>Reserved visit</span><strong>@Model.ScheduledAt.Value.ToString("MMM dd, yyyy hh:mm tt") · Manila</strong></div><p class="school-ticket-disclaimer">Check in through ICAS Assistant when you arrive, from 15 minutes before until 30 minutes after your reserved time. Actual service depends on the office queue.</p> }
         <div class="ticket-line"><span>Office</span><strong>@Model.Office</strong></div><div class="ticket-line"><span>Request</span><strong>@Model.RequestType</strong></div><div class="ticket-line"><span>Student / Ref.</span><strong>@Model.StudentNumber</strong></div><div class="ticket-line"><span>Notes</span><strong>@Model.RequestNotes</strong></div>
         <div class="ticket-line"><span>Priority</span><strong>@Model.PriorityType</strong></div>
         <div class="ticket-line"><span>Status</span><strong>@Model.Status • @Model.EstimatedWaitText</strong></div>

@@ -16,6 +16,9 @@ public class Ticket
     public string Status { get; set; } = "Waiting";
     public string CounterName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTimeOffset? ScheduledAt { get; set; }
+    public DateTime? CheckedInAt { get; set; }
+    public string BookingKey { get; set; } = string.Empty;
     public DateTime? CalledAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime? SkippedAt { get; set; }

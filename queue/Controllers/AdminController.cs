@@ -88,6 +88,12 @@ public class AdminController : Controller
         return RedirectToAction("QueueControl");
     }
 
+    public IActionResult Appointments()
+    {
+        var gate=RequireLogin();if(gate is not EmptyResult)return gate;
+        return View(_store.Snapshot().Tickets.Where(t=>t.Status=="Scheduled").OrderBy(t=>t.ScheduledAt).ToList());
+    }
+
     public IActionResult Reports()
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;

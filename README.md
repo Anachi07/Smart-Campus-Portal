@@ -27,16 +27,11 @@ The local gateway uses port 8080; PHP and ASP.NET Core use internal ports 8082 a
 
 The launcher can use `CAMPUS_DATA_DIR` for a separate data directory; original sample files are copied only if target data files do not already exist. It generates a fresh internal session-service key each startup and does not print it. All components use Asia/Manila time. Without an explicit data directory, the launcher uses ignored `.runtime/data` so sample files in the checkout remain unchanged.
 
-## Demo accounts
+## Accounts
 
-| Role | Username | Password |
-| --- | --- | --- |
-| Admin | ADMIN | ADMIN |
-| Teacher | TCH001 | teacher123 |
-| Student | 2024-0002 | student123 |
-| Parent | PARENT001 | parent123 |
+Accounts are managed privately by the school administrator. Public pages do not display sample usernames or passwords. Password inputs remain masked, and new or changed passwords require at least 12 characters. Change any initial/sample account passwords through My profile before giving accounts to actual users; hiding a login hint does not rotate existing credentials.
 
-Self-registration creates **student accounts only**. Administrators create staff/parent accounts and link class and student profiles. New or changed passwords require at least 12 characters. Existing demo credentials are retained for exploration.
+The repository's sample-data fixtures are for development testing only. Keep real account credentials out of source files, screenshots, public FAQs, and chat messages.
 
 ## Deployment
 
@@ -74,3 +69,7 @@ The site now uses ICAS Philippines branding with green, white, and yellow across
 School queues are limited to **Document Request**, **School Fees**, and **Tuition Payment**. Each request includes the relevant transaction type, contact details, student/reference number, and optional office notes. Documents go to Registrar counters; fees and tuition go to Cashier counters. A counter can also be assigned All Services. Estimates use only matching active counters, and the public display shows simultaneous office transactions without displaying student names.
 
 These are office-service queue tickets. They do not generate academic documents, charge tuition online, calculate an official balance, issue receipts, or confirm payment. The responsible school office verifies student details, requirements, amounts, release, and receipts. The deployment remains a free, sample-data demo.
+
+## School assistant and planned visits
+
+The compact ICAS Assistant provides published school guidance, optional Gemini/OpenAI answers with server-side credentials, and confirmed queue reservations. Administrators publish school facts and configure booking availability. See [ASSISTANT.md](ASSISTANT.md) for setup and limits. Without a provider key, it is explicitly a school guide; scheduling still works.

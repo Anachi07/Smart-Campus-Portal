@@ -4,8 +4,16 @@ using Microsoft.AspNetCore.HttpOverrides;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = Environment.GetEnvironmentVariable("CAMPUS_PUBLIC_HTTPS") == "1" ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+});
 builder.Services.AddHttpClient("campus").ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseProxy = false, UseCookies = false });
 builder.Services.AddSingleton<QueueStore>();
+builder.Services.AddSingleton<SchoolAssistantService>();
+builder.Services.AddSingleton<AssistantThrottle>();
+builder.Services.AddHttpClient("school-ai",c => c.Timeout=TimeSpan.FromSeconds(20));
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

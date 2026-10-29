@@ -58,6 +58,7 @@ function init_database(PDO $pdo): void {
     $columns = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
     if (!in_array('auth_version', $columns, true)) $pdo->exec('ALTER TABLE users ADD COLUMN auth_version INTEGER NOT NULL DEFAULT 0');
     $pdo->exec('CREATE TABLE IF NOT EXISTS login_attempts (identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, blocked_until INTEGER NOT NULL)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS school_faqs (id INTEGER PRIMARY KEY AUTOINCREMENT, question TEXT NOT NULL, answer TEXT NOT NULL, source_label TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0, updated_at TEXT DEFAULT CURRENT_TIMESTAMP)');
     $pdo->exec('CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, event_date TEXT NOT NULL, description TEXT, created_by INTEGER REFERENCES users(id))');
     $pdo->exec('CREATE INDEX IF NOT EXISTS attendance_student_date ON attendance(student_id,date)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS schedules_section_subject ON schedules(section_id,subject_id)');

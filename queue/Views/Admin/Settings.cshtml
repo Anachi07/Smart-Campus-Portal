@@ -110,6 +110,14 @@
 
             <section class="panel"><div class="panel-head"><h2>Phone delivery</h2><span>Not connected</span></div><p class="muted">This demo provides account notifications and optional phone logs. No SMS provider is connected, and phone logs do not send text messages. Do not enter provider credentials here.</p></section>
 
+            <section class="panel scheduling-settings">
+                <div class="panel-head"><h2>Visit scheduling</h2><span>Portal booking rules</span></div>
+                <p class="muted">These settings control online reservations. Confirm the actual office hours with the school. A reservation does not guarantee an exact service-start time.</p>
+                <label class="toggle-row"><input asp-for="EnableAppointments" type="checkbox" /><span>Allow students and visitors to reserve a queue visit</span></label>
+                <div class="form-grid compact-form"><label>Slot interval<select asp-for="AppointmentSlotMinutes"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option></select></label><label>Bookings per office per slot<input asp-for="MaxBookingsPerSlot" type="number" min="1" max="10" /></label><label>Days ahead<input asp-for="AdvanceBookingDays" type="number" min="1" max="30" /></label></div>
+                <fieldset class="booking-days"><legend>Reservation days</legend>@foreach(var day in new[]{(1,"Mon"),(2,"Tue"),(3,"Wed"),(4,"Thu"),(5,"Fri"),(6,"Sat"),(0,"Sun")}) {<label><input type="checkbox" name="BookingDays" value="@day.Item1" checked="@(Model.BookingDays.Contains(day.Item1) ? "checked" : null)" />@day.Item2</label>}</fieldset>
+                <p class="muted">Uses the opening and closing hours above. Check-in opens 15 minutes before a visit and closes 30 minutes after. Select no days to close reservations.</p>
+            </section>
             <div class="settings-actions">
                 <button class="btn btn-animated" type="submit">Save Settings</button>
                 <a class="btn btn-soft" asp-controller="Admin" asp-action="Notifications">View Alerts</a>
