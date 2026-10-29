@@ -13,3 +13,10 @@ Full-workspace backup/restore now validates both data stores, creates safety cop
 The Render service remains a free sample-data demo. Persistent production storage and final school branding are not included in this release.
 
 Daily queue handling also expires unresolved tickets from earlier dates, and the tracker refreshes automatically when its tab is visible. New student profiles no longer start with fabricated attendance/GPA figures; summaries are calculated from recorded class data. Migration recalculates the original sample grade GPAs using the documented grading scale.
+
+# ICAS school branding and Registrar/Cashier update
+
+- ICAS Philippines identity, supplied-reference logo asset, and green/white/yellow university-style interfaces across public and signed-in pages.
+- Dedicated document requests, school fees, and tuition queues with transaction details, student/reference number, office notes, validation, and clear receipt/payment disclaimers.
+- Registrar/Cashier counter assignments, office-aware call-next and waiting estimates, separate configurable tuition service time, and a public display that shows all serving offices.
+- Browser coverage now includes the student services form, its dynamic transaction options, and mobile layouts; regression checks cover office routing and student-reference requirements.

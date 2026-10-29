@@ -134,10 +134,10 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult AddCounter(string name, string staffName)
+    public IActionResult AddCounter(string name, string staffName, string office = "All Services")
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        TempData["SuccessMessage"] = _store.AddCounter(name, staffName) ? "Counter saved successfully." : "Use a unique counter name of up to 60 characters and a staff name of up to 80 characters.";
+        TempData["SuccessMessage"] = _store.AddCounter(name, staffName, office) ? "Counter saved successfully." : "Use a unique counter name of up to 60 characters and a staff name of up to 80 characters.";
         return RedirectToAction("Counters");
     }
 

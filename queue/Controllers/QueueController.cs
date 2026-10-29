@@ -29,7 +29,8 @@ public class QueueController : Controller
         return View(new TicketRequestViewModel
         {
             CustomerName = HttpContext.Session.GetString("FullName") ?? string.Empty,
-            PhoneNumber = HttpContext.Session.GetString("PhoneNumber") ?? string.Empty
+            PhoneNumber = HttpContext.Session.GetString("PhoneNumber") ?? string.Empty,
+            StudentNumber = HttpContext.Session.GetString("StudentNumber") ?? string.Empty
         });
     }
 
@@ -45,7 +46,7 @@ public class QueueController : Controller
         var currentUserId = HttpContext.Session.GetInt32("UserId");
         var customerName = HttpContext.Session.GetString("FullName") ?? model.CustomerName;
         var phoneNumber = model.PhoneNumber;
-        var result = _store.CreateTicket(customerName, phoneNumber, model.ServiceType, model.PriorityType, currentUserId);
+        var result = _store.CreateTicket(customerName, phoneNumber, model.ServiceType, model.PriorityType, currentUserId, model.RequestType, model.StudentNumber, model.RequestNotes);
         if (!result.ok)
         {
             model.ErrorMessage = result.message;

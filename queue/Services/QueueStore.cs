@@ -208,16 +208,20 @@ public class QueueStore
         }
     }
 
-    public (bool ok, string message, Ticket? ticket) CreateTicket(string customerName, string phone, string service, string priority, int? customerUserId = null)
+    public (bool ok, string message, Ticket? ticket) CreateTicket(string customerName, string phone, string service, string priority, int? customerUserId = null, string requestType = "", string studentNumber = "", string requestNotes = "")
     {
         phone = NormalizePhone(phone);
         lock (_lock)
         {
             if (string.IsNullOrWhiteSpace(customerName)) return (false, "Customer name is required.", null);
             if (!IsValidPhilippinePhone(phone)) return (false, "Please enter a valid 11-digit phone number that starts with 09.", null);
-            if (!new[] { "General Inquiry", "Payment", "Registration", "Document Request", "Appointment", "Customer Service" }.Contains(service)) return (false, "Choose a valid campus service.", null);
+            if (!CampusServices.RequestTypes.TryGetValue(service, out var types) || !types.Contains(requestType)) return (false, "Choose a school service and a valid transaction type.", null);
+            studentNumber = (studentNumber ?? "").Trim(); requestNotes = (requestNotes ?? "").Trim();
+            if (studentNumber.Length > 40 || (studentNumber.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(studentNumber, @"^[A-Za-z0-9._/-]+$"))) return (false, "Use a valid student or reference number of up to 40 characters.", null);
+            if ((service == "Document Request" || service == "Tuition Payment") && studentNumber.Length < 3) return (false, "Enter the student number for this request. The office will verify the record.", null);
+            if (requestNotes.Length > 400) return (false, "Keep your request notes within 400 characters.", null);
             if (!new[] { "Regular", "Priority" }.Contains(priority)) return (false, "Choose a valid priority type.", null);
-            var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && (t.Status == "Waiting" || t.Status == "Now Serving"));
+            var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && t.RequestType == requestType && t.StudentNumber == studentNumber && (t.Status == "Waiting" || t.Status == "Now Serving"));
             if (active != null) return (true, "You already have an active ticket for this service.", active);
 
             var linkedUserId = ResolveCustomerUserId(phone, customerUserId);
@@ -229,6 +233,7 @@ public class QueueStore
                 PhoneNumber = phone,
                 CustomerUserId = linkedUserId,
                 ServiceType = service.Trim(),
+                RequestType = requestType, StudentNumber = studentNumber, RequestNotes = requestNotes,
                 PriorityType = string.IsNullOrWhiteSpace(priority) ? "Regular" : priority.Trim(),
                 Status = "Waiting",
                 CreatedAt = DateTime.Now
@@ -370,7 +375,7 @@ public class QueueStore
             RefreshQueuePredictionsLocked();
             var counter = _data.Counters.FirstOrDefault(c => c.Name == counterName && c.Status == "Available");
             if (counter == null || _data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == counterName)) return null;
-            var next = WaitingOrdered().FirstOrDefault();
+            var next = WaitingOrdered().FirstOrDefault(t => counter.Office == "All Services" || CampusServices.OfficeFor(t.ServiceType) == counter.Office);
             if (next == null) return null;
 
             counter.Status = "Serving";
@@ -408,7 +413,7 @@ public class QueueStore
             ticket.Status = "Served";
             ticket.CompletedAt = DateTime.Now;
             AddLog("Ticket completed", $"{ticket.TicketNumber} has been served.");
-            NotifyCustomer(ticket, "Ticket completed", $"Your ticket {ticket.TicketNumber} has been completed. Thank you.", "completed");
+            NotifyCustomer(ticket, "Ticket completed", $"Your queue visit {ticket.TicketNumber} has been completed. Refer to the Registrar or Cashier for document release and official payment confirmation.", "completed");
             RefreshQueuePredictionsLocked();
             Save();
             return true;
@@ -475,16 +480,18 @@ public class QueueStore
         }
     }
 
-    public bool AddCounter(string name, string staffName)
+    public bool AddCounter(string name, string staffName, string office = "All Services")
     {
         lock (_lock)
         {
+            if (!new[] { "Registrar", "Cashier", "All Services" }.Contains(office)) return false;
             if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 60 || (staffName?.Length ?? 0) > 80 || _data.Counters.Any(c => c.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))) return false;
             _data.Counters.Add(new Counter
             {
                 Id = NextId(_data.Counters.Select(c => c.Id)),
                 Name = name.Trim(),
                 StaffName = staffName?.Trim() ?? string.Empty,
+                Office = office,
                 Status = "Available"
             });
             AddLog("Counter added", $"{name} was added.");
@@ -511,7 +518,7 @@ public class QueueStore
     {
         lock (_lock)
         {
-            _data.Settings.EstablishmentName = string.IsNullOrWhiteSpace(settings.EstablishmentName) ? "SmartQueueSystemGUI" : settings.EstablishmentName.Trim();
+            _data.Settings.EstablishmentName = string.IsNullOrWhiteSpace(settings.EstablishmentName) ? "ICAS Philippines" : settings.EstablishmentName.Trim();
             _data.Settings.SmsProviderName = string.IsNullOrWhiteSpace(settings.SmsProviderName) ? "Phone Gateway" : settings.SmsProviderName.Trim();
             _data.Settings.SmsApiKey = string.Empty; // Provider delivery is not configured in this demo.
             _data.Settings.EnablePhoneNotifications = settings.EnablePhoneNotifications;
@@ -530,6 +537,7 @@ public class QueueStore
             _data.Settings.PredictionBufferMinutes = Math.Clamp(settings.PredictionBufferMinutes, 0, 30);
             _data.Settings.DefaultServiceMinutes = Math.Clamp(settings.DefaultServiceMinutes, 1, 120);
             _data.Settings.GeneralInquiryMinutes = Math.Clamp(settings.GeneralInquiryMinutes, 1, 120);
+            _data.Settings.TuitionMinutes = Math.Clamp(settings.TuitionMinutes, 1, 120);
             _data.Settings.PaymentMinutes = Math.Clamp(settings.PaymentMinutes, 1, 120);
             _data.Settings.RegistrationMinutes = Math.Clamp(settings.RegistrationMinutes, 1, 120);
             _data.Settings.DocumentRequestMinutes = Math.Clamp(settings.DocumentRequestMinutes, 1, 120);
@@ -567,42 +575,24 @@ public class QueueStore
     {
         if (ExpireOldTickets(_data)) Save();
         var now = DateTime.Now;
-        var activeCounters = _data.Counters
-            .Where(c => !string.Equals(c.Status, "Offline", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(c => c.Name)
-            .ToList();
-
-        if (!activeCounters.Any())
-        {
-            activeCounters.Add(new Counter { Id = 0, Name = "Counter 1", Status = "Available" });
-        }
-
-        var counterLoads = activeCounters.Select(c => 0.0).ToArray();
+        var activeCounters = _data.Counters.Where(c => c.Status is "Available" or "Serving").OrderBy(c => c.Name).ToList();
+        var counterLoads = activeCounters.Select(c => {
+            var serving = _data.Tickets.FirstOrDefault(t => t.Status == "Now Serving" && t.CounterName == c.Name);
+            return serving == null ? 0.0 : Math.Max(0, EstimateServiceMinutes(serving.ServiceType, serving.PriorityType) - (now - (serving.CalledAt ?? now)).TotalMinutes);
+        }).ToArray();
         var recommendation = RecommendBestVisitTimeLocked();
         var queueLength = _data.Tickets.Count(t => t.Status == "Waiting");
-
-        foreach (var ticket in WaitingOrdered().ToList())
-        {
-            var minIndex = 0;
-            for (var i = 1; i < counterLoads.Length; i++)
-            {
-                if (counterLoads[i] < counterLoads[minIndex]) minIndex = i;
+        foreach (var ticket in WaitingOrdered().ToList()) {
+            var eligible = Enumerable.Range(0,activeCounters.Count).Where(i => activeCounters[i].Office == "All Services" || activeCounters[i].Office == CampusServices.OfficeFor(ticket.ServiceType)).ToList();
+            if (!eligible.Any()) {
+                ticket.EstimatedWaitText="Awaiting office availability"; ticket.EstimatedWaitMinutes=0; ticket.EstimatedServiceStartAt=null; ticket.PredictedCounterName="Awaiting " + CampusServices.OfficeFor(ticket.ServiceType); ticket.BestVisitTime=recommendation;
+                ticket.AiInsight="The office has no active counter. Staff will update availability."; continue;
             }
-
-            var wait = Math.Max(0, (int)Math.Ceiling(counterLoads[minIndex] + _data.Settings.PredictionBufferMinutes));
-            if (string.Equals(ticket.PriorityType, "Priority", StringComparison.OrdinalIgnoreCase))
-            {
-                wait = Math.Max(0, wait - _data.Settings.PriorityBoostMinutes);
-            }
-
-            ticket.EstimatedWaitMinutes = wait;
-            ticket.EstimatedWaitText = FormatWaitMinutes(wait);
-            ticket.EstimatedServiceStartAt = now.AddMinutes(wait);
-            ticket.PredictedCounterName = activeCounters[minIndex].Name;
-            ticket.BestVisitTime = recommendation;
-            ticket.AiInsight = BuildAiInsight(ticket, queueLength, activeCounters.Count);
-
-            counterLoads[minIndex] += EstimateServiceMinutes(ticket.ServiceType, ticket.PriorityType);
+            var minIndex=eligible.OrderBy(i => counterLoads[i]).First();
+            var wait=Math.Max(0,(int)Math.Ceiling(counterLoads[minIndex]+_data.Settings.PredictionBufferMinutes));
+            ticket.EstimatedWaitMinutes=wait; ticket.EstimatedWaitText=FormatWaitMinutes(wait); ticket.EstimatedServiceStartAt=now.AddMinutes(wait);
+            ticket.PredictedCounterName=activeCounters[minIndex].Name; ticket.BestVisitTime=recommendation; ticket.AiInsight=BuildAiInsight(ticket,queueLength,eligible.Count);
+            counterLoads[minIndex]+=EstimateServiceMinutes(ticket.ServiceType,ticket.PriorityType);
         }
 
         foreach (var ticket in _data.Tickets.Where(t => t.Status == "Now Serving"))
@@ -636,7 +626,8 @@ public class QueueStore
         var minutes = service switch
         {
             "general inquiry" => _data.Settings.GeneralInquiryMinutes,
-            "payment" => _data.Settings.PaymentMinutes,
+            "payment" or "school fees" => _data.Settings.PaymentMinutes,
+            "tuition payment" => _data.Settings.TuitionMinutes,
             "registration" => _data.Settings.RegistrationMinutes,
             "document request" => _data.Settings.DocumentRequestMinutes,
             "appointment" => _data.Settings.AppointmentMinutes,
@@ -910,6 +901,7 @@ public class QueueStore
                     changed |= ExpireOldTickets(loaded);
                     EnsureDefaultSettings(loaded.Settings);
                     EnsureDefaultCounters(loaded);
+                    changed |= EnsureCampusOffices(loaded);
 
                     if (changed) SaveData(loaded);
                     return loaded;
@@ -923,6 +915,7 @@ public class QueueStore
         EnsureDefaultAdmin(seeded);
         EnsureDefaultSettings(seeded.Settings);
         EnsureDefaultCounters(seeded);
+        EnsureCampusOffices(seeded);
         SaveData(seeded);
         return seeded;
     }
@@ -946,12 +939,13 @@ public class QueueStore
 
     private static void EnsureDefaultSettings(AppSettings settings)
     {
-        if (string.IsNullOrWhiteSpace(settings.EstablishmentName)) settings.EstablishmentName = "SmartQueueSystemGUI";
+        if (string.IsNullOrWhiteSpace(settings.EstablishmentName) || settings.EstablishmentName == "SmartQueueSystemGUI") settings.EstablishmentName = "ICAS Philippines";
         if (string.IsNullOrWhiteSpace(settings.SmsProviderName)) settings.SmsProviderName = "Phone Gateway";
         if (settings.AlmostNextPosition < 1) settings.AlmostNextPosition = 1;
         if (string.IsNullOrWhiteSpace(settings.AccentTheme)) settings.AccentTheme = "Blue";
         if (settings.DefaultServiceMinutes < 1) settings.DefaultServiceMinutes = 5;
         if (settings.GeneralInquiryMinutes < 1) settings.GeneralInquiryMinutes = 3;
+        if (settings.TuitionMinutes < 1) settings.TuitionMinutes = 8;
         if (settings.PaymentMinutes < 1) settings.PaymentMinutes = 4;
         if (settings.RegistrationMinutes < 1) settings.RegistrationMinutes = 7;
         if (settings.DocumentRequestMinutes < 1) settings.DocumentRequestMinutes = 6;
@@ -960,6 +954,15 @@ public class QueueStore
         if (settings.BusinessStartHour < 0 || settings.BusinessStartHour > 23) settings.BusinessStartHour = 8;
         if (settings.BusinessEndHour <= settings.BusinessStartHour || settings.BusinessEndHour > 24) settings.BusinessEndHour = 17;
         if (settings.LowTrafficThreshold < 0) settings.LowTrafficThreshold = 3;
+    }
+
+    private static bool EnsureCampusOffices(SmartQueueData data) {
+        var changed=false;
+        foreach(var counter in data.Counters.Where(c => string.IsNullOrWhiteSpace(c.Office))) {
+            counter.Office=counter.Name == "Counter 1" ? "Registrar" : counter.Name is "Counter 2" or "Counter 3" ? "Cashier" : "All Services";
+            changed=true;
+        }
+        return changed;
     }
 
     private void EnsureDefaultCounters(SmartQueueData data)

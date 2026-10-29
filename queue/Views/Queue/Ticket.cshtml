@@ -4,18 +4,20 @@
 }
 <section class="ticket-page reveal-up">
     <div class="ticket-slip ticket-slip-print">
-        <img class="ticket-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
-        <p class="eyebrow">Queue Ticket</p>
+        <img class="ticket-logo" src="/sims/brand-logo.php" alt="ICAS Philippines" />
+        <p class="eyebrow">ICAS PHILIPPINES · QUEUE TICKET</p>
         <h1>@Model.TicketNumber</h1>
         <div class="ticket-line"><span>Name</span><strong>@Model.CustomerName</strong></div>
         <div class="ticket-line"><span>Phone</span><strong>@QueueStore.MaskPhone(Model.PhoneNumber)</strong></div>
         <div class="ticket-line"><span>Service</span><strong>@Model.ServiceType</strong></div>
+        <div class="ticket-line"><span>Office</span><strong>@Model.Office</strong></div><div class="ticket-line"><span>Request</span><strong>@Model.RequestType</strong></div><div class="ticket-line"><span>Student / Ref.</span><strong>@Model.StudentNumber</strong></div><div class="ticket-line"><span>Notes</span><strong>@Model.RequestNotes</strong></div>
         <div class="ticket-line"><span>Priority</span><strong>@Model.PriorityType</strong></div>
         <div class="ticket-line"><span>Status</span><strong>@Model.Status • @Model.EstimatedWaitText</strong></div>
         <div class="ticket-line"><span>Estimated Call</span><strong>@(Model.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating")</strong></div>
         <div class="ticket-line"><span>Counter</span><strong>@(string.IsNullOrWhiteSpace(Model.PredictedCounterName) ? "Next available" : Model.PredictedCounterName)</strong></div>
         <div class="ticket-line"><span>Best Time</span><strong>@Model.BestVisitTime</strong></div>
         <div class="ticket-line"><span>Issued</span><strong>@Model.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</strong></div>
+        <p class="school-ticket-disclaimer">Queue ticket only. Not an official receipt or proof of payment. Document availability, release, and amounts due are verified by the responsible office.</p>
         <div class="qr-wrap">
             <img class="qr-code" src="@Url.Action("TicketQr", "Queue", new { id = Model.TicketNumber })" alt="QR code for ticket @Model.TicketNumber" />
             <small>Scan to track</small>

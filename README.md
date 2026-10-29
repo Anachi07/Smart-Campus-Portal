@@ -1,6 +1,6 @@
-# Smart Campus Portal
+# ICAS Philippines Campus Portal
 
-A connected **SmartSIMS + SmartQueue web demo** with one account, role-based access, and a responsive interface. The current scope is a **free demo using sample data**; final school branding is pending the supplied logo/design.
+A connected **SmartSIMS + SmartQueue web demo** with one account, role-based access, and a responsive interface. The current scope is a **free demo using sample data**; ICAS Philippines branding uses the supplied logo reference and a green, white, and yellow interface.
 
 ## What works
 
@@ -66,3 +66,11 @@ The browser suite checks desktop/mobile navigation, JavaScript errors, and horiz
 ## Original uploads and storage
 
 The original uploaded ZIPs remain unchanged. This web integration uses the PHP SmartSIMS version; its Windows Forms executable is not included. Academic and queue stores remain separate but are backed up/restored together. Old queue-only passwords cannot establish a portal session, and historical queue-only accounts were not automatically matched to academic people. Existing sample records are preserved in the repository.
+
+## ICAS Philippines branding and student services
+
+The site now uses ICAS Philippines branding with green, white, and yellow across the public home, sign-in, academic workspace, and Registrar/Cashier pages. A web-prepared logo asset derived from the supplied chat reference is stored at `sims/assets/images/icas-logo.png`. `/sims/brand-logo.php` serves that asset; it can be replaced with the school's original high-resolution PNG/JPG/SVG without changing the templates. The artwork is a prepared reference version, not an independently verified official master file.
+
+School queues are limited to **Document Request**, **School Fees**, and **Tuition Payment**. Each request includes the relevant transaction type, contact details, student/reference number, and optional office notes. Documents go to Registrar counters; fees and tuition go to Cashier counters. A counter can also be assigned All Services. Estimates use only matching active counters, and the public display shows simultaneous office transactions without displaying student names.
+
+These are office-service queue tickets. They do not generate academic documents, charge tuition online, calculate an official balance, issue receipts, or confirm payment. The responsible school office verifies student details, requirements, amounts, release, and receipts. The deployment remains a free, sample-data demo.

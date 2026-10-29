@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
   try { path = new URL(req.url, 'http://campus.local').pathname; } catch { res.writeHead(400); res.end('Invalid request.'); return; }
   if (path !== '/') res.setHeader('X-Robots-Tag', 'noindex, nofollow');
   if (path.startsWith('/internal/')) { res.writeHead(404); res.end(); return; }
-  if (path === '/robots.txt') { res.writeHead(200, {'Content-Type':'text/plain'}); res.end('User-agent: *\nAllow: /$\nDisallow: /portal\nDisallow: /sims/\nDisallow: /Admin/\nDisallow: /Queue/\n'); return; }
+  if (path === '/robots.txt') { res.writeHead(200, {'Content-Type':'text/plain'}); res.end('User-agent: *\nAllow: /$\nAllow: /sims/assets/\nAllow: /sims/brand-logo.php\nDisallow: /portal\nDisallow: /sims/\nDisallow: /Admin/\nDisallow: /Queue/\n'); return; }
   if (Number(req.headers['content-length'] || 0) > maxBody) { res.writeHead(413); res.end('Upload limit is 12 MB.'); return; }
   const sims = path === '/' || path.startsWith('/sims/') || path === '/portal';
   if (path === '/sims') { res.writeHead(302, {Location: '/sims/'}); res.end(); return; }
@@ -20,7 +20,7 @@ const server = http.createServer((req, res) => {
   delete headers['x-campus-secret'];
   const upstreamPath = path === '/' ? '/index.php' : path === '/portal' ? '/portal.php' : sims ? req.url.slice(5) : req.url;
   const upstream = http.request({hostname:'127.0.0.1',port:sims?8082:8081,method:req.method,path:upstreamPath,headers}, response => {
-    const responseHeaders={...response.headers, 'cache-control':'no-store'};
+    const responseHeaders={...response.headers, 'cache-control':path==='/sims/brand-logo.php'?'public, max-age=0, must-revalidate':'no-store'};
     delete responseHeaders['x-powered-by']; delete responseHeaders.server;
     res.writeHead(response.statusCode,responseHeaders); response.pipe(res);
   });

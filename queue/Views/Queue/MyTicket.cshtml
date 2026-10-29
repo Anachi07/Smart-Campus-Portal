@@ -43,6 +43,7 @@
                     </div>
                     <div class="ticket-meta">
                         <span>Service <strong>@ticket.ServiceType</strong></span>
+                        <span>Office <strong>@ticket.Office</strong></span><span>Request <strong>@ticket.RequestType</strong></span><span>Student / Ref. <strong>@ticket.StudentNumber</strong></span>
                         <span>Priority <strong>@ticket.PriorityType</strong></span>
                         <span>Counter <strong>@(string.IsNullOrWhiteSpace(ticket.CounterName) ? (string.IsNullOrWhiteSpace(ticket.PredictedCounterName) ? "Waiting" : ticket.PredictedCounterName) : ticket.CounterName)</strong></span>
                         <span>Estimated Call <strong>@(ticket.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating")</strong></span>

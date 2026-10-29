@@ -20,25 +20,26 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@title - Smart Campus Portal</title>
-    <link rel="icon" type="image/svg+xml" href="~/img/favicon.svg" />
+    <title>@title · ICAS Philippines</title>
+    <link rel="icon" href="/sims/brand-logo.php" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/campus.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/icas.css" asp-append-version="true" />
 </head>
 <body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount">
     @if (!isAuthPage)
     {
         <header class="topbar app-topbar glass-nav">
             <a class="brand brand-icon-only" href="/portal" aria-label="Campus portal home">
-                <img class="brand-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+                <span class="queue-school-name">ICAS Philippines<small>REGISTRAR & CASHIER SERVICES</small></span><img class="brand-logo" src="/sims/brand-logo.php" alt="ICAS Philippines" />
             </a>
-            <button class="nav-toggle" type="button" aria-label="Toggle navigation" data-nav-toggle>Menu</button>
+            <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" data-nav-toggle>Menu</button>
             <nav class="topnav" aria-label="Top navigation" data-topnav>
                 <a href="/portal">Campus Portal</a>
                 <a href="/sims/dashboard.php">SmartSIMS</a>
                 @if (role == "Customer")
                 {
-                    <a asp-controller="Queue" asp-action="GetTicket" class="@(controller == "Queue" && action == "GetTicket" ? "active" : "")">Get Ticket</a>
+                    <a asp-controller="Queue" asp-action="GetTicket" class="@(controller == "Queue" && action == "GetTicket" ? "active" : "")">New transaction</a>
                     <a asp-controller="Queue" asp-action="MyTicket" class="@(controller == "Queue" && action == "MyTicket" ? "active" : "")">Track</a>
                     <a asp-controller="Queue" asp-action="Notifications" class="notification-link @(controller == "Queue" && action == "Notifications" ? "active" : "")">
                         Notifications
@@ -65,7 +66,7 @@
                     <a asp-controller="Queue" asp-action="MyTicket" class="@(controller == "Queue" && action == "MyTicket" ? "active" : "")">Track Ticket</a>
                 }
 
-                <a asp-controller="Home" asp-action="Display" target="_blank">Display</a>
+                <a asp-controller="Home" asp-action="Display" target="_blank">Queue display</a>
                 @if (!string.IsNullOrWhiteSpace(role))
                 {
                     <span class="user-chip"><span>@role</span>@fullName</span>

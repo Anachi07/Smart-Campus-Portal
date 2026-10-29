@@ -14,9 +14,9 @@
             <form asp-action="CallNext" method="post" class="call-next-card">
                 @Html.AntiForgeryToken()
                 <select name="counterName" aria-label="Select counter">
-                    @foreach (var c in Model.Counters.Where(c => c.Status != "Offline"))
+                    @foreach (var c in Model.Counters.Where(c => c.Status == "Available"))
                     {
-                        <option value="@c.Name">@c.Name</option>
+                        <option value="@c.Name">@c.Office · @c.Name</option>
                     }
                 </select>
                 <button class="btn btn-animated" type="submit">Call Next</button>
@@ -41,9 +41,9 @@
                         <div>
                             <strong>@t.TicketNumber</strong>
                             <span>@t.CustomerName · @QueueStore.MaskPhone(t.PhoneNumber)</span>
-                            <em>@t.ServiceType · @t.CounterName · @t.EstimatedWaitText</em>
+                            <em>@t.Office · @t.RequestType · @t.CounterName · @t.EstimatedWaitText</em><small>@t.StudentNumber</small>
                         </div>
-                        <div class="row-actions">
+                        <div class="row-actions"><a class="btn btn-small btn-soft" asp-controller="Queue" asp-action="Ticket" asp-route-id="@t.TicketNumber">View request</a>
                             <form asp-action="Complete" method="post">@Html.AntiForgeryToken()<input type="hidden" name="ticketNumber" value="@t.TicketNumber" /><button class="btn btn-small">Served</button></form>
                             <form asp-action="Skip" method="post">@Html.AntiForgeryToken()<input type="hidden" name="ticketNumber" value="@t.TicketNumber" /><button class="btn btn-small btn-warn">Skip</button></form>
                         </div>
@@ -61,11 +61,11 @@
                     <div class="queue-row">
                         <div>
                             <strong>@t.TicketNumber</strong>
-                            <span>@t.CustomerName · @t.ServiceType</span>
+                            <span>@t.CustomerName · @t.ServiceType · @t.RequestType</span>
                             <em>@t.PriorityType · @QueueStore.MaskPhone(t.PhoneNumber)</em>
                             <small class="queue-estimate">ETA @t.EstimatedWaitText • @(t.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "calculating") • @t.PredictedCounterName</small>
                         </div>
-                        <span class="pill @(t.PriorityType == "Priority" ? "status-priority" : "")">@t.PriorityType</span>
+                        <a class="btn btn-small btn-soft" asp-controller="Queue" asp-action="Ticket" asp-route-id="@t.TicketNumber">View request</a><span class="pill @(t.PriorityType == "Priority" ? "status-priority" : "")">@t.PriorityType</span>
                     </div>
                 }
             </div>

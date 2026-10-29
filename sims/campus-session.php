@@ -16,4 +16,5 @@ foreach (['students', 'teachers', 'parents'] as $table) {
     $record = row("SELECT phone FROM $table WHERE user_id=?", [$user['id']]);
     if ($record && !empty($record['phone'])) { $phone = $record['phone']; break; }
 }
-echo json_encode(['id'=>(int)$user['id'], 'fullName'=>$user['full_name'], 'role'=>$user['role'], 'phone'=>$phone, 'csrf'=>csrf_token()]);
+$studentNumber=(string)(scalar('SELECT student_no FROM students WHERE user_id=?',[$user['id']]) ?: scalar('SELECT s.student_no FROM parents p JOIN students s ON s.id=p.student_id WHERE p.user_id=?',[$user['id']]) ?: '');
+echo json_encode(['id'=>(int)$user['id'], 'fullName'=>$user['full_name'], 'role'=>$user['role'], 'phone'=>$phone, 'csrf'=>csrf_token(), 'studentNumber'=>$studentNumber]);

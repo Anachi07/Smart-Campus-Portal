@@ -94,7 +94,8 @@ function setupNavToggle(){
   const btn = document.querySelector('[data-nav-toggle]');
   const nav = document.querySelector('[data-topnav]');
   if(!btn || !nav) return;
-  btn.addEventListener('click', function(){ nav.classList.toggle('open'); });
+  btn.addEventListener('click', function(){ const open=nav.classList.toggle('open');btn.setAttribute('aria-expanded',String(open)); });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav.classList.remove('open');btn.setAttribute('aria-expanded','false');}});
 }
 
 function setupButtonRipple(){

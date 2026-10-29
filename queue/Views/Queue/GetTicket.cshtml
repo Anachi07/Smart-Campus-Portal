@@ -1,65 +1,44 @@
 @model TicketRequestViewModel
 @{
-    ViewData["Title"] = "Get Ticket";
-    var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
+    ViewData["Title"] = "Registrar & Cashier";
 }
-<section class="content-shell narrow animated-bg-soft">
-    <div class="section-head reveal-up">
-        <div>
-            <p class="eyebrow">Customer Queue</p>
-            <h1>Get a Queue Ticket</h1>
-            <p class="muted">Select your transaction and receive an estimated waiting time.</p>
-        </div>
-        <div class="actions">
-            <a class="btn btn-soft" asp-controller="Queue" asp-action="Notifications">Notifications</a>
-            <a class="btn btn-soft" asp-controller="Queue" asp-action="MyTicket">Track Ticket</a>
-        </div>
+<section class="content-shell narrow school-request-shell">
+    <div class="section-head">
+        <div><p class="eyebrow">ICAS PHILIPPINES · STUDENT SERVICES</p><h1>How can we help you today?</h1><p class="muted">Request a school document or get in line for school fees and tuition payments.</p></div>
+        <a class="btn btn-soft" asp-action="MyTicket">My transactions →</a>
     </div>
-
-    @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
-    {
-        <div class="alert alert-success">@ViewBag.SuccessMessage</div>
-    }
-    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
-    {
-        <div class="alert alert-error">@Model.ErrorMessage</div>
-    }
-
-    <div class="ticket-entry-grid">
-        <form asp-action="GetTicket" method="post" class="panel form-grid reveal-up">
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert alert-error" role="alert">@Model.ErrorMessage</div> }
+    @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string)) { <div class="alert alert-success">@ViewBag.SuccessMessage</div> }
+    <div class="school-request-layout">
+        <form asp-action="GetTicket" method="post" class="panel school-request-form">
             @Html.AntiForgeryToken()
-            <label>Customer Name
-                <input asp-for="CustomerName" placeholder="Full name" autocomplete="name" readonly />
-            </label>
-            <label>Phone Number
-                <input asp-for="PhoneNumber" placeholder="09XXXXXXXXX" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" autocomplete="tel" required />
-            </label>
-            <label>Service Type
-                <select asp-for="ServiceType" required>
-                    <option>General Inquiry</option>
-                    <option>Payment</option>
-                    <option>Registration</option>
-                    <option>Document Request</option>
-                    <option>Appointment</option>
-                    <option>Customer Service</option>
-                </select>
-            </label>
-            <label>Priority Type
-                <select asp-for="PriorityType" required>
-                    <option>Regular</option>
-                    <option>Priority</option>
-                </select>
-            </label>
-            <button class="btn btn-animated span-2" type="submit">Generate Ticket</button>
+            <h2 class="school-form-heading"><span>01</span> Choose your transaction</h2>
+            <fieldset class="school-service-options"><legend class="visually-hidden">Campus service</legend>
+                @foreach (var option in new[] { ("Document Request", "Registrar", "Documents"), ("School Fees", "Cashier", "School fees"), ("Tuition Payment", "Cashier", "Tuition") })
+                {
+                    <label class="school-service-option"><input type="radio" asp-for="ServiceType" id="@("service-" + option.Item1.Replace(" ", "-"))" value="@option.Item1" required /><span><strong>@option.Item3</strong><small>@option.Item2</small></span></label>
+                }
+            </fieldset>
+            <label class="school-field">Transaction type<select asp-for="RequestType" required data-selected="@Model.RequestType">@foreach (var type in CampusServices.RequestTypes.GetValueOrDefault(Model.ServiceType) ?? Array.Empty<string>()) { <option value="@type">@type</option> }</select></label>
+            <div class="school-office-indicator"><span class="office-dot"></span><span>Your request goes to <strong id="requestOffice">@CampusServices.OfficeFor(Model.ServiceType)</strong></span></div>
+            <h2 class="school-form-heading"><span>02</span> Confirm your details</h2>
+            <div class="school-form-grid">
+                <label class="school-field">Requested by<input asp-for="CustomerName" readonly autocomplete="name" /></label>
+                <label class="school-field">Contact number<input asp-for="PhoneNumber" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" placeholder="09XXXXXXXXX" autocomplete="tel" required /></label>
+                <label class="school-field">Student / reference number<input asp-for="StudentNumber" maxlength="40" placeholder="Enter the student's school ID" /><small id="studentNumberHelp">Required for documents and tuition. The office verifies your record.</small></label>
+                <label class="school-field">Queue priority<select asp-for="PriorityType"><option>Regular</option><option>Priority</option></select><small>Priority eligibility is verified at the office.</small></label>
+            </div>
+            <label class="school-field">Notes for the office <span class="field-optional">(optional)</span><textarea asp-for="RequestNotes" rows="3" maxlength="400" placeholder="Document purpose, academic year, or other information the office should know. Do not enter passwords or payment card details."></textarea></label>
+            <div class="school-request-notice"><strong>Please remember</strong><p>This creates a queue ticket. It does not issue a document, make an online payment, or serve as an official receipt. Bring your school ID and settle any fees with the responsible office.</p></div>
+            <button class="btn school-request-submit" type="submit">Get my queue ticket <span>→</span></button>
         </form>
-
-        <aside class="panel queue-preview-card reveal-up delay-1">
-            <img class="panel-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
-            <p class="eyebrow">Today</p>
-            <h2>@(settings.EnableAiRecommendations ? "Best time enabled" : "Queue estimate enabled")</h2>
-            <div class="preview-metric"><span>Default service</span><strong>@settings.DefaultServiceMinutes min</strong></div>
-            <div class="preview-metric"><span>Prediction buffer</span><strong>@settings.PredictionBufferMinutes min</strong></div>
-            <div class="preview-metric"><span>Business hours</span><strong>@settings.BusinessStartHour:00 - @settings.BusinessEndHour:00</strong></div>
+        <aside class="school-request-guide">
+            <section class="panel"><img class="school-guide-logo" src="/sims/brand-logo.php" alt="ICAS Philippines" /><p class="eyebrow">WE'RE HERE TO HELP</p><h2>Your school services,<br>made simpler.</h2><p class="muted">Choose the service you need. Your ticket will be routed to the matching office.</p><div class="school-office-card"><span>REGISTRAR</span><h3>School documents</h3><p>Certificates, academic records, certified copies, and other document requests. Availability and release requirements are confirmed by the Registrar.</p></div><div class="school-office-card gold"><span>CASHIER</span><h3>School fees & tuition</h3><p>Queue for school-related fees, tuition assessments, and tuition payments. The Cashier confirms the amount and issues the official receipt.</p></div></section>
+            <section class="school-guide-note"><strong>Already have a ticket?</strong><p>Keep track of your transaction and wait for your number to be called.</p><a asp-action="MyTicket">Track my ticket →</a></section>
         </aside>
     </div>
 </section>
+@section Scripts {
+<script type="application/json" id="campusServiceCatalog">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(CampusServices.RequestTypes))</script>
+<script src="~/js/school-request.js" asp-append-version="true"></script>
+}

@@ -32,7 +32,7 @@ for p in ['/sims/modules/student/grades.php','/sims/modules/student/attendance.p
  url,body=get(student,p); assert 'Fatal error' not in body and 'login.php' not in url,p
 assert '/Admin/Dashboard' not in get(student,'/Admin/Dashboard')[0]
 _,body=get(student,'/Queue/GetTicket')
-url,ticket=post(student,'/Queue/GetTicket',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'CustomerName':'ignored','PhoneNumber':'09121110002','ServiceType':'Document Request','PriorityType':'Regular'})
+url,ticket=post(student,'/Queue/GetTicket',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'CustomerName':'ignored','PhoneNumber':'09121110002','ServiceType':'Document Request','RequestType':'Certificate of Enrollment','StudentNumber':'2024-0002','PriorityType':'Regular'})
 assert '/Queue/Ticket/' in url or '/Queue/Ticket?' in url,(url,ticket[:100])
 assert 'Document Request' in ticket
 assert 'SmartSIMS' in ticket

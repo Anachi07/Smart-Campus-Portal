@@ -1,46 +1,21 @@
 @model QueueControlViewModel
 @{
-    ViewData["Title"] = "Public Display";
+    ViewData["Title"] = "Registrar & Cashier display";
     var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
-    var serving = Model.NowServingTickets.OrderByDescending(t => t.CalledAt).FirstOrDefault();
+    var serving = Model.NowServingTickets.OrderBy(t => t.CounterName).ToList();
 }
 <section class="display-screen">
-    <div class="display-header">
-        <div class="display-brand display-brand-icon-only">
-            <img src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
-            <h1>Queue Display</h1>
+    <div class="display-header"><div class="display-brand"><img src="/sims/brand-logo.php" alt="ICAS Philippines" /><h1>@settings.EstablishmentName<small class="display-school-subtitle">Registrar & Cashier · Now serving</small></h1></div><div class="clock" id="clock"></div></div>
+    <div class="display-main school-display-main">
+        <div class="school-serving-grid">
+            @if (!serving.Any()) { <div class="serving-box"><span>Now serving</span><strong>—</strong><em>Waiting for the next transaction</em><p>Registrar & Cashier services</p></div> }
+            @foreach (var ticket in serving) { <article class="serving-box"><span>@ticket.Office · @ticket.CounterName</span><strong>@ticket.TicketNumber</strong><em>@ticket.ServiceType</em><p>@ticket.RequestType</p></article> }
         </div>
-        <div class="clock" id="clock"></div>
-    </div>
-
-    <div class="display-main">
-        <div class="serving-box">
-            <span>Now Serving</span>
-            <strong>@(serving?.TicketNumber ?? "---")</strong>
-            <em>@(serving?.CounterName ?? "Please wait")</em>
-            <p>@(serving?.ServiceType ?? "No active ticket")</p>
-        </div>
-        <div class="next-box">
-            <h2>Next in Queue</h2>
-            @if (!Model.WaitingTickets.Any())
-            {
-                <p class="muted-light">No waiting tickets.</p>
-            }
-            @foreach (var t in Model.WaitingTickets.Take(8))
-            {
-                <div class="next-ticket">
-                    <div>
-                        <strong>@t.TicketNumber</strong>
-                        <span>@t.ServiceType</span>
-                    </div>
-                    <em>@t.PredictedCounterName</em>
-                </div>
-            }
+        <div class="next-box"><h2>Next in line</h2>
+            @if (!Model.WaitingTickets.Any()) { <p class="muted-light">No waiting transactions.</p> }
+            @foreach (var ticket in Model.WaitingTickets.Take(10)) { <div class="next-ticket"><div><strong>@ticket.TicketNumber</strong><span>@ticket.Office · @ticket.ServiceType</span></div><em>@ticket.PredictedCounterName</em></div> }
         </div>
     </div>
+    <p class="school-display-note">Please prepare your school ID and wait for your number to be called. This display contains queue information only, not payment or document-release confirmation.</p>
 </section>
-@section Scripts {
-    <script>
-        setTimeout(function(){ window.location.reload(); }, 10000);
-    </script>
-}
+@section Scripts { <script>setTimeout(()=>window.location.reload(),10000);</script> }

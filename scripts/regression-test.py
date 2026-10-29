@@ -99,12 +99,12 @@ assert 'valid attendance' in body
 print('PASS grade validation and GPA calculation, attendance upsert, and future-date rejection')
 # Own tickets only; repeat submission returns the same active ticket.
 _,body=request(student,'/Queue/GetTicket');qt=token(body,'__RequestVerificationToken')
-payload={'__RequestVerificationToken':qt,'PhoneNumber':'09121110002','ServiceType':'Payment','PriorityType':'Regular'}
+payload={'__RequestVerificationToken':qt,'PhoneNumber':'09121110002','ServiceType':'School Fees','RequestType':'Miscellaneous Fees','StudentNumber':'2024-0002','PriorityType':'Regular'}
 first,ticket=request(student,'/Queue/GetTicket',payload);second,_=request(student,'/Queue/GetTicket',payload)
 assert first==second,(first,second)
 path=urllib.parse.urlsplit(first).path+'?'+urllib.parse.urlsplit(first).query
 status(other,path,404)
-_,found=request(other,'/Queue/MyTicket?searchText=09121110002');assert 'Payment</strong>' not in found
+_,found=request(other,'/Queue/MyTicket?searchText=09121110002');assert 'School Fees</strong>' not in found
 # A counter serves one ticket at a time; waiting tickets cannot be completed.
 number=urllib.parse.parse_qs(urllib.parse.urlsplit(first).query).get('id',[urllib.parse.urlsplit(first).path.rsplit('/',1)[-1]])[0]
 def queuepost(path,values,form='/Admin/QueueControl'):
@@ -122,6 +122,44 @@ queuepost('/Admin/Complete',{'ticketNumber':serving[0]['TicketNumber']})
 assert next(c for c in backup(admin)['queue_data']['Counters'] if c['Name']=='QA Counter')['Status']=='Available'
 print('PASS single-ticket counters, valid queue transitions, and automatic counter release')
 print('PASS ticket ownership and duplicate-submit handling')
+
+# Mixed office queues: Registrar must not call a tuition ticket even if it has priority.
+def school_ticket(service,kind,priority='Regular'):
+    _,body=request(student,'/Queue/GetTicket')
+    url,body=request(student,'/Queue/GetTicket',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'PhoneNumber':'09121110002','ServiceType':service,'RequestType':kind,'StudentNumber':'2024-0002','PriorityType':priority,'RequestNotes':'QA transaction'})
+    assert '/Queue/Ticket' in url,(service,url)
+    return urllib.parse.parse_qs(urllib.parse.urlsplit(url).query).get('id',[urllib.parse.urlsplit(url).path.rsplit('/',1)[-1]])[0],body
+newdoc,_=school_ticket('Document Request','Good Moral Certificate')
+tuition,tuitionbody=school_ticket('Tuition Payment','Current Tuition Assessment','Priority')
+assert 'Not an official receipt or proof of payment' in tuitionbody
+queuepost('/Admin/AddCounter',{'name':'QA Registrar','staffName':'Registrar','office':'Registrar'},'/Admin/Counters')
+queuepost('/Admin/AddCounter',{'name':'QA Cashier','staffName':'Cashier','office':'Cashier'},'/Admin/Counters')
+queuepost('/Admin/CallNext',{'counterName':'QA Registrar'})
+queuepost('/Admin/CallNext',{'counterName':'QA Cashier'})
+queued=backup(admin)['queue_data']
+assert next(t for t in queued['Tickets'] if t['TicketNumber']==newdoc)['CounterName']=='QA Registrar'
+assert next(t for t in queued['Tickets'] if t['TicketNumber']==tuition)['CounterName']=='QA Cashier'
+_,body=request(student,'/Queue/GetTicket')
+_,invalid=request(student,'/Queue/GetTicket',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'PhoneNumber':'09121110002','ServiceType':'General Inquiry','RequestType':'Anything','PriorityType':'Regular'})
+assert 'Choose a school service' in invalid
+_,body=request(student,'/Queue/GetTicket')
+_,invalid=request(student,'/Queue/GetTicket',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'PhoneNumber':'09121110002','ServiceType':'Tuition Payment','RequestType':'Outstanding Tuition Balance','StudentNumber':'','PriorityType':'Regular'})
+assert 'Enter the student number' in invalid
+print('PASS document/tuition request validation, Registrar/Cashier routing, and payment disclaimer')
+
+_,display=request(client(),'/Home/Display')
+assert newdoc in display and tuition in display and 'Maria Santos' not in display
+# With every Registrar/general counter offline, a document must not be assigned to Cashier.
+for item in list(queued['Tickets']):
+    if item['Status']=='Now Serving' and item['Office']=='Registrar':queuepost('/Admin/Complete',{'ticketNumber':item['TicketNumber']})
+for counter in backup(admin)['queue_data']['Counters']:
+    if counter['Office'] in ['Registrar','All Services']:queuepost('/Admin/UpdateCounter',{'id':counter['Id'],'status':'Offline'},'/Admin/Counters')
+unavailable,_=school_ticket('Document Request','Transcript / Academic Record')
+waiting=next(t for t in backup(admin)['queue_data']['Tickets'] if t['TicketNumber']==unavailable)
+assert waiting['EstimatedServiceStartAt'] is None and waiting['PredictedCounterName']=='Awaiting Registrar'
+print('PASS multi-office public display, student privacy, and honest unavailable-office estimates')
+
+
 # Calendar/events and settings persist across fresh page requests.
 post(admin,'/sims/modules/admin/manage.php?entity=events',{'action':'create','title':'QA Campus Event','event_date':today,'description':'Verified event'})
 assert 'QA Campus Event' in request(student,'/sims/modules/shared/calendar.php')[1]

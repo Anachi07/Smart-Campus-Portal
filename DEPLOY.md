@@ -44,4 +44,4 @@ The Blueprint stays on `plan: free` and explicitly sets `CAMPUS_MODE=demo`. Push
 
 Before updating, download **Backup workspace** in the admin portal if you need existing demo changes. After a redeploy on ephemeral storage, sign in to the fresh demo and use **Restore workspace** to upload the full JSON backup. Academic records and queue data are restored together. Restore requires typing `RESTORE`, validates the files, creates safety copies, and signs out existing sessions.
 
-Final logo and school design assets are still pending. The current release uses a neutral shared layout as a base for those assets. No real student data should be entered into this free demo.
+The ICAS release uses a green, white, and yellow school theme with the supplied-reference logo asset. Public, academic, and Registrar/Cashier interfaces share the same school identity. No real student data should be entered into this free demo.

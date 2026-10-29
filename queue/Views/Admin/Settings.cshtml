@@ -27,13 +27,9 @@
                     <label>System Name
                         <input asp-for="EstablishmentName" placeholder="SmartQueueSystemGUI" />
                     </label>
-                    <label>Accent Theme
-                        <select asp-for="AccentTheme">
-                            <option>Blue</option>
-                            <option>Emerald</option>
-                            <option>Violet</option>
-                            <option>Slate</option>
-                        </select>
+                    <label>School theme
+                        <input type="text" value="ICAS · Green, White & Yellow" readonly />
+                        <input asp-for="AccentTheme" type="hidden" />
                     </label>
                 </div>
             </section>
@@ -71,24 +67,19 @@
             <section class="panel reveal-up delay-1">
                 <div class="panel-head"><h2>Transaction Time</h2><span>Minutes</span></div>
                 <div class="form-grid compact-form">
-                    <label>General Inquiry
-                        <input asp-for="GeneralInquiryMinutes" type="number" min="1" max="120" />
-                    </label>
-                    <label>Payment
+
+                    <label>School Fees
                         <input asp-for="PaymentMinutes" type="number" min="1" max="120" />
                     </label>
-                    <label>Registration
-                        <input asp-for="RegistrationMinutes" type="number" min="1" max="120" />
+
+                    <label>Tuition Payment
+                        <input asp-for="TuitionMinutes" type="number" min="1" max="120" />
                     </label>
                     <label>Document Request
                         <input asp-for="DocumentRequestMinutes" type="number" min="1" max="120" />
                     </label>
-                    <label>Appointment
-                        <input asp-for="AppointmentMinutes" type="number" min="1" max="120" />
-                    </label>
-                    <label>Customer Service
-                        <input asp-for="CustomerServiceMinutes" type="number" min="1" max="120" />
-                    </label>
+
+
                 </div>
             </section>
 

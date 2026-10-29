@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/../../includes/layout.php'; require_role(['Admin']); check_csrf(); $error='';
-$defaults=['school_name'=>'Smart Campus','academic_year'=>date('Y').'-'.(date('Y')+1)];
+$defaults=['school_name'=>'ICAS Philippines','academic_year'=>date('Y').'-'.(date('Y')+1)];
 if($_SERVER['REQUEST_METHOD']==='POST') {
     $values=$_POST['settings']??[];
     foreach($defaults as $key=>$default) { $value=trim((string)($values[$key]??'')); if(!$value||strlen($value)>120) $error='Enter a school name and academic year of up to 120 characters.'; $values[$key]=$value; }

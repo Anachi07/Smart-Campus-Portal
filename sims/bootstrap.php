@@ -244,6 +244,11 @@ function option_list(string $table, string $label='name'): array {
 
 require_once __DIR__ . '/includes/access.php';
 db();
+if (setting('school_branding_version') !== 'icas-1') {
+    $school=setting('school_name');
+    if (!$school || in_array($school,['Smart Campus','Smart University','Smart SIMS','SmartSIMS','SmartQueueSystemGUI'],true)) db()->exec("INSERT INTO settings(key,value) VALUES('school_name','ICAS Philippines') ON CONFLICT(key) DO UPDATE SET value='ICAS Philippines'");
+    db()->exec("INSERT INTO settings(key,value) VALUES('school_branding_version','icas-1') ON CONFLICT(key) DO UPDATE SET value='icas-1'");
+}
 if (setting('risk_rules_version') !== '3') {
     foreach(rows('SELECT id,prelim,midterm,final FROM grades') as $grade) db()->prepare('UPDATE grades SET gpa=? WHERE id=?')->execute([grade_to_gpa(((float)$grade['prelim']+(float)$grade['midterm']+(float)$grade['final'])/3),$grade['id']]);
     foreach(rows('SELECT id FROM students') as $record) generate_prediction((int)$record['id'],false);

@@ -22,6 +22,7 @@
             @Html.AntiForgeryToken()
             <label>Counter Name<input name="name" placeholder="Counter 4" required /></label>
             <label>Staff Name<input name="staffName" placeholder="Staff Name" /></label>
+            <label>Responsible office<select name="office"><option>Registrar</option><option>Cashier</option><option>All Services</option></select></label>
             <button class="btn span-2" type="submit">Add Counter</button>
         </form>
 
@@ -31,7 +32,7 @@
                 <article class="counter-card">
                     <div>
                         <span class="counter-dot @QueueStore.StatusCss(c.Status)"></span>
-                        <h2>@c.Name</h2>
+                        <small class="counter-office-label">@c.Office</small><h2>@c.Name</h2>
                         <p>@(string.IsNullOrWhiteSpace(c.StaffName) ? "No assigned staff" : c.StaffName)</p>
                     </div>
                     <span class="pill status-@QueueStore.StatusCss(c.Status)">@c.Status</span>

@@ -22,7 +22,10 @@ public class TicketRequestViewModel
 {
     public string CustomerName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
-    public string ServiceType { get; set; } = "General Inquiry";
+    public string ServiceType { get; set; } = "Document Request";
+    public string RequestType { get; set; } = "Certificate of Enrollment";
+    public string StudentNumber { get; set; } = string.Empty;
+    public string RequestNotes { get; set; } = string.Empty;
     public string PriorityType { get; set; } = "Regular";
     public string? ErrorMessage { get; set; }
 }

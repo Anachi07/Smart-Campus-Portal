@@ -10,7 +10,7 @@ if(isset($_GET['export'])){
     $export=$_GET['export']; $filename=strtolower(str_replace(' ','_',$title));
     if($export==='csv'){ header('Content-Type:text/csv'); header("Content-Disposition: attachment; filename=$filename.csv"); $out=fopen('php://output','w'); if($records){fputcsv($out,array_keys($records[0])); foreach($records as $r) fputcsv($out,array_map(fn($v)=>preg_match('/^[=+@\-\t\r]/',(string)$v)?"'".$v:$v,$r));} exit; }
     if($export==='excel'){ header('Content-Type: application/vnd.ms-excel'); header("Content-Disposition: attachment; filename=$filename.xls"); echo '<table border="1">'; if($records){echo '<tr>'; foreach(array_keys($records[0]) as $h) echo '<th>'.e($h).'</th>'; echo '</tr>'; foreach($records as $r){echo '<tr>'; foreach($r as $v) echo '<td>'.e(preg_match('/^[=+@\-\t\r]/',(string)$v)?"'".$v:$v).'</td>'; echo '</tr>';}} echo '</table>'; exit; }
-    if($export==='pdf'){ $lines=$records?[implode(' | ',array_keys($records[0]))]:[]; foreach($records as $r){ $lines[]=implode(' | ', array_map('strval',$r)); } output_simple_pdf($filename.'.pdf',$title,$lines); }
+    if($export==='pdf'){ $lines=$records?[implode(' | ',array_keys($records[0]))]:[]; foreach($records as $r){ $lines[]=implode(' | ', array_map('strval',$r)); } output_simple_pdf($filename.'.pdf','ICAS Philippines - '.$title,$lines); }
 }
 render_header('Reports');
 ?>

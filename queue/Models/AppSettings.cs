@@ -2,7 +2,7 @@ namespace SmartQueueSystemGUI.Models;
 
 public class AppSettings
 {
-    public string EstablishmentName { get; set; } = "SmartQueueSystemGUI";
+    public string EstablishmentName { get; set; } = "ICAS Philippines";
     public string SmsProviderName { get; set; } = "Phone Gateway";
     public string SmsApiKey { get; set; } = string.Empty;
     public bool EnablePhoneNotifications { get; set; } = true;
@@ -23,6 +23,7 @@ public class AppSettings
     public int DefaultServiceMinutes { get; set; } = 5;
     public int GeneralInquiryMinutes { get; set; } = 3;
     public int PaymentMinutes { get; set; } = 4;
+    public int TuitionMinutes { get; set; } = 8;
     public int RegistrationMinutes { get; set; } = 7;
     public int DocumentRequestMinutes { get; set; } = 6;
     public int AppointmentMinutes { get; set; } = 8;

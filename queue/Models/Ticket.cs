@@ -8,6 +8,10 @@ public class Ticket
     public string PhoneNumber { get; set; } = string.Empty;
     public int? CustomerUserId { get; set; }
     public string ServiceType { get; set; } = string.Empty;
+    public string RequestType { get; set; } = string.Empty;
+    public string StudentNumber { get; set; } = string.Empty;
+    public string RequestNotes { get; set; } = string.Empty;
+    public string Office => CampusServices.OfficeFor(ServiceType);
     public string PriorityType { get; set; } = "Regular";
     public string Status { get; set; } = "Waiting";
     public string CounterName { get; set; } = string.Empty;
