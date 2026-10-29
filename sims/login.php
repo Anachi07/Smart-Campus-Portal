@@ -1,23 +1,36 @@
 <?php
-require_once 'bootstrap.php';
+require_once 'includes/auth-layout.php';
 if (current_user()) redirect('/portal');
-$error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    check_csrf();
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $stmt = db()->prepare('SELECT * FROM users WHERE username=? AND status="Active"');
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($password, $user['password_hash'])) {
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['role_id'] = $user['role_id'];
-        $_SESSION['last_activity'] = time();
-        db()->prepare('UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$user['id']]);
-        log_activity($user['id'], 'Login', 'User logged in successfully.');
-        redirect('/portal');
-    } else { $error = 'Invalid username or password.'; }
+$error=''; $username='';
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    check_csrf(); $username=trim((string)($_POST['username']??'')); $password=(string)($_POST['password']??'');
+    $identity=hash('sha256',strtolower($username));
+    $attempt=row('SELECT * FROM login_attempts WHERE identity=?',[$identity]);
+    if ($attempt && (int)$attempt['blocked_until']>time()) { $error='Too many attempts. Please try again in 15 minutes.'; http_response_code(429); }
+    else {
+        $user=row('SELECT * FROM users WHERE username=? COLLATE NOCASE AND status="Active"',[$username]);
+        if ($user && password_verify($password,$user['password_hash'])) {
+            db()->prepare('DELETE FROM login_attempts WHERE identity=?')->execute([$identity]);
+            session_regenerate_id(true);
+            $_SESSION=['user_id'=>$user['id'],'role_id'=>$user['role_id'],'auth_version'=>(int)$user['auth_version'],'last_activity'=>time(),'workspace_epoch'=>setting('session_epoch','initial')];
+            db()->prepare('UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$user['id']]);
+            log_activity($user['id'],'Login','Signed in to campus portal.'); redirect('/portal');
+        }
+        $failures=$attempt && (int)$attempt['blocked_until']>time()-900 ? (int)$attempt['failures']+1 : 1;
+        db()->prepare('INSERT INTO login_attempts(identity,failures,blocked_until) VALUES(?,?,?) ON CONFLICT(identity) DO UPDATE SET failures=excluded.failures,blocked_until=excluded.blocked_until')->execute([$identity,$failures,$failures>=5?time()+900:time()]);
+        $error='Invalid username or password.';
+    }
 }
-?>
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Login - Smart Campus Portal</title><link href="/sims/assets/css/bootstrap.min.css" rel="stylesheet"><link href="/sims/assets/css/fontawesome.min.css" rel="stylesheet"><link href="assets/css/style.css" rel="stylesheet"></head><body><section class="landing"><div class="landing-card row g-0"><div class="col-lg-6 landing-left"><img src="assets/images/logo.svg" width="82" class="mb-4"><h1 class="fw-bold">Smart Campus Portal</h1><p><?= APP_LONG_NAME ?></p><p class="mt-5">Student Information, Attendance & Campus Queue Services</p></div><div class="col-lg-6 p-5"><div class="login-box"><h3 class="fw-bold">Welcome Back!</h3><p class="text-muted">Sign in to continue to your account.</p><?php if($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?><?php if(isset($_GET['timeout'])): ?><div class="alert alert-warning">Session expired. Please sign in again.</div><?php endif; ?><form method="post"><?= csrf_field() ?><div class="mb-3"><label class="form-label">Username</label><input name="username" class="form-control"  required autofocus></div><div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control"  required></div><div class="d-flex justify-content-between small mb-3"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div><button class="btn btn-primary w-100 py-2">Sign In</button></form><p class="text-center mt-3 small">Don't have an account? <a href="register.php">Register here</a></p></div></div></div></section></body></html>
+auth_header('Welcome back'); ?>
+<p class="text-muted mb-4">Sign in to your campus account to continue.</p>
+<?= flash() ?>
+<?php if($error): ?><div class="alert alert-danger" role="alert"><?= e($error) ?></div><?php endif; ?>
+<?php if(isset($_GET['restored'])): ?><div class="alert alert-success">Workspace restored. Sign in with an account from your backup.</div><?php endif; ?>
+<?php if(isset($_GET['timeout'])): ?><div class="alert alert-warning">Your session expired. Please sign in again.</div><?php endif; ?>
+<form method="post" class="auth-form"><?= csrf_field() ?>
+<label for="username">Username / student number</label><input id="username" name="username" class="form-control" value="<?= e($username) ?>" maxlength="80" autocomplete="username" required autofocus>
+<label for="password">Password</label><div class="password-field"><input id="password" name="password" type="password" class="form-control" autocomplete="current-password" maxlength="200" required><button type="button" data-password-toggle="password" aria-label="Show password">Show</button></div>
+<p class="small text-muted mt-3">Forgot your password? Ask your school administrator to reset it.</p>
+<button class="btn btn-primary w-100" type="submit">Sign in <span aria-hidden="true">→</span></button></form>
+<?php if(campus_mode()==='demo'): ?><div class="demo-note"><strong>Explore the demo</strong><p>Admin: <code>ADMIN</code> / <code>ADMIN</code><br>Student: <code>2024-0002</code> / <code>student123</code></p><small>Sample accounts only. Demo records may reset after a redeploy.</small></div><p class="small text-muted mt-3">New student? <a href="register.php">Create a demo student account</a></p><?php endif; ?>
+<?php auth_footer(); ?>

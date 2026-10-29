@@ -37,3 +37,11 @@ The container image builds the .NET SDK from Microsoft's official archive and ve
 ## Validation performed
 
 The container was built with checksum verification enabled and tested through its gateway: shared admin/student login, academic pages, queue role restrictions, ticket creation and search, admin call-next, shared logout, private-file blocking, local assets, and `/health`. These local checks do not establish that a Render service has been created or that a public URL is live.
+
+## Updating the existing free demo
+
+The Blueprint stays on `plan: free` and explicitly sets `CAMPUS_MODE=demo`. Pushes to the connected `main` branch can trigger Render's automatic deploy if automatic deployment is enabled. A successful Git push does not confirm that Render's build or deployment has completed; use the service's Events/Logs and `/health` to confirm it.
+
+Before updating, download **Backup workspace** in the admin portal if you need existing demo changes. After a redeploy on ephemeral storage, sign in to the fresh demo and use **Restore workspace** to upload the full JSON backup. Academic records and queue data are restored together. Restore requires typing `RESTORE`, validates the files, creates safety copies, and signs out existing sessions.
+
+Final logo and school design assets are still pending. The current release uses a neutral shared layout as a base for those assets. No real student data should be entered into this free demo.

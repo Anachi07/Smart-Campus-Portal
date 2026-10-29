@@ -39,7 +39,7 @@
             </section>
 
             <section class="panel reveal-up delay-1">
-                <div class="panel-head"><h2>Waiting Time</h2><span>AI assisted</span></div>
+                <div class="panel-head"><h2>Waiting Time</h2><span>Service estimates</span></div>
                 <div class="toggle-list">
                     <label class="toggle-row">
                         <input asp-for="EnableAiRecommendations" type="checkbox" />
@@ -117,17 +117,7 @@
                 </div>
             </section>
 
-            <section class="panel reveal-up delay-3">
-                <div class="panel-head"><h2>Phone Gateway</h2><span>Optional</span></div>
-                <div class="form-stack">
-                    <label>Provider Name
-                        <input asp-for="SmsProviderName" placeholder="Phone Gateway" />
-                    </label>
-                    <label>API Key
-                        <input asp-for="SmsApiKey" type="password" placeholder="Add provider API key" autocomplete="off" />
-                    </label>
-                </div>
-            </section>
+            <section class="panel"><div class="panel-head"><h2>Phone delivery</h2><span>Not connected</span></div><p class="muted">This demo provides account notifications and optional phone logs. No SMS provider is connected, and phone logs do not send text messages. Do not enter provider credentials here.</p></section>
 
             <div class="settings-actions">
                 <button class="btn btn-animated" type="submit">Save Settings</button>

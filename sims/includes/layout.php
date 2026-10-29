@@ -3,6 +3,7 @@ require_once __DIR__ . '/../bootstrap.php';
 function render_header(string $title='Dashboard'): void {
     $user = current_user();
     $role = $user['role'] ?? 'Guest';
+    $school=setting('school_name','Smart Campus');
     $unread = $user ? scalar('SELECT COUNT(*) FROM notifications WHERE (user_id=? OR user_id IS NULL) AND is_read=0', [$user['id']]) : 0;
 ?>
 <!doctype html>
@@ -14,18 +15,19 @@ function render_header(string $title='Dashboard'): void {
     <link href="/sims/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="/sims/assets/css/fontawesome.min.css" rel="stylesheet">
     <link href="<?= asset('css/style.css') ?>" rel="stylesheet">
+    <link href="<?= asset('css/portal.css') ?>" rel="stylesheet">
 </head>
 <body>
-<div class="app-shell">
+<a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell"><button class="sidebar-overlay" id="sidebarOverlay" aria-label="Close navigation" hidden></button>
 <?php render_sidebar($role); ?>
-<main class="main-content">
+<main class="main-content" id="main-content">
     <nav class="topbar shadow-sm">
-        <button class="btn btn-light d-lg-none" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
-        <div class="search-box d-none d-md-flex"><i class="fa-solid fa-search"></i><input id="globalSearch" placeholder="Search anything..."></div>
+        <button class="btn btn-light d-lg-none" id="sidebarToggle" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+        <div class="search-box d-none d-md-flex"><i class="fa-solid fa-search"></i><input id="globalSearch" placeholder="Filter this page…" aria-label="Filter records on this page"></div>
         <div class="ms-auto d-flex align-items-center gap-3">
-            <button class="btn btn-sm btn-light rounded-pill" id="darkModeToggle"><i class="fa-solid fa-moon"></i></button>
+            <a class="help-link" href="/sims/modules/shared/help.php" aria-label="Help and guidance"><i class="fa-regular fa-circle-question"></i></a>
             <div class="dropdown">
-                <button class="btn btn-light position-relative" data-bs-toggle="dropdown"><i class="fa-solid fa-bell"></i><?php if($unread): ?><span class="badge rounded-pill bg-danger bell-badge"><?= e($unread) ?></span><?php endif; ?></button>
+                <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-label="Notifications"><i class="fa-solid fa-bell"></i><?php if($unread): ?><span class="badge rounded-pill bg-danger bell-badge"><?= e($unread) ?></span><?php endif; ?></button>
                 <div class="dropdown-menu dropdown-menu-end notification-menu p-2">
                     <?php foreach(rows('SELECT * FROM notifications WHERE user_id=? OR user_id IS NULL ORDER BY created_at DESC LIMIT 5', [$user['id'] ?? 0]) as $n): ?>
                     <div class="small p-2 border-bottom"><strong><?= e($n['title']) ?></strong><br><span class="text-muted"><?= e($n['body']) ?></span></div>
@@ -33,16 +35,17 @@ function render_header(string $title='Dashboard'): void {
                 </div>
             </div>
             <div class="dropdown">
-                <button class="btn user-chip" data-bs-toggle="dropdown"><img src="<?= asset('images/' . ($user['profile_pic'] ?? 'default-avatar.svg')) ?>" onerror="this.src='<?= asset('images/default-avatar.svg') ?>'"> <span><?= e($user['full_name'] ?? 'Guest') ?></span></button>
+                <button class="btn user-chip" data-bs-toggle="dropdown" aria-label="Open account menu"><img src="<?= asset('images/' . ($user['profile_pic'] ?? 'default-avatar.svg')) ?>" onerror="this.src='<?= asset('images/default-avatar.svg') ?>'"> <span><?= e($user['full_name'] ?? 'Guest') ?></span></button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><span class="dropdown-item-text small text-muted"><?= e($role) ?></span></li>
                     <li><a class="dropdown-item" href="<?= root_href('modules/student/profile.php') ?>"><i class="fa-solid fa-user me-2"></i>Profile</a></li>
-                    <li><a class="dropdown-item" href="<?= root_href('logout.php') ?>"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                    <li><form method="post" action="/sims/logout.php"><?= csrf_field() ?><button class="dropdown-item" type="submit"><i class="fa-solid fa-right-from-bracket me-2"></i>Sign out</button></form></li>
                 </ul>
             </div>
         </div>
     </nav>
     <div class="page-body">
+        <?php if(campus_mode()==='demo'): ?><div class="workspace-note"><span class="status-dot"></span> Demo workspace <span>Sample data · Records may reset after a redeploy</span></div><?php endif; ?>
         <?= flash() ?>
 <?php }
 
@@ -58,11 +61,13 @@ function render_sidebar(string $role): void {
             ['modules/admin/manage.php?entity=subjects','fa-book','Subjects'],
             ['modules/admin/manage.php?entity=sections','fa-diagram-project','Sections'],
             ['modules/admin/manage.php?entity=school_years','fa-school','School Years'],
+            ['modules/admin/manage.php?entity=schedules','fa-clock','Class Schedules'],
+            ['modules/admin/manage.php?entity=events','fa-calendar-days','Calendar Events'],
             ['modules/admin/manage.php?entity=users','fa-user-shield','Users & Roles'],
             ['modules/admin/manage.php?entity=announcements','fa-bullhorn','Announcements'],
-            ['modules/shared/attendance_ai.php','fa-camera','AI Attendance'],
-            ['modules/shared/qr_attendance.php','fa-qrcode','QR Attendance'],
-            ['modules/shared/predictive.php','fa-chart-line','Predictive Analytics'],
+            ['modules/teacher/attendance.php','fa-calendar-check','Attendance Desk'],
+            ['modules/shared/qr_attendance.php','fa-qrcode','ID Check-in'],
+            ['modules/shared/predictive.php','fa-chart-line','Academic Insights'],
             ['modules/shared/reports.php','fa-file-export','Reports'],
             ['modules/admin/backup.php','fa-database','Backup Database'],
             ['modules/admin/restore.php','fa-upload','Restore Database'],
@@ -76,8 +81,8 @@ function render_sidebar(string $role): void {
             ['modules/teacher/grades.php','fa-pen-to-square','Encode Grades'],
             ['modules/teacher/announcements.php','fa-bullhorn','Announcements'],
             ['modules/teacher/at_risk.php','fa-triangle-exclamation','At-Risk Students'],
-            ['modules/shared/attendance_ai.php','fa-camera','AI Attendance'],
-            ['modules/shared/qr_attendance.php','fa-qrcode','QR Attendance'],
+            ['modules/teacher/attendance.php','fa-calendar-check','Attendance Desk'],
+            ['modules/shared/qr_attendance.php','fa-qrcode','ID Check-in'],
             ['modules/shared/reports.php','fa-file-export','Reports']
         ]);
     } elseif ($role === 'Student') {
@@ -97,14 +102,14 @@ function render_sidebar(string $role): void {
     }
 ?>
 <aside class="sidebar" id="sidebar">
-    <a class="brand" href="<?= root_href('dashboard.php') ?>"><img src="<?= asset('images/logo.svg') ?>" alt="Smart SIMS"><div><strong>Smart SIMS</strong><span>AI Portal System</span></div></a>
+    <a class="brand" href="<?= root_href('dashboard.php') ?>"><img src="<?= asset('images/logo.svg') ?>" alt="Smart SIMS"><div><strong><?= e(setting('school_name','Smart Campus')) ?></strong><span>ACADEMIC WORKSPACE</span></div></a>
     <div class="side-section">Campus Portal</div>
     <a class="nav-link" href="/portal"><i class="fa-solid fa-house"></i> Portal Home</a>
     <a class="nav-link" href="<?= $role === 'Admin' ? '/Admin/Dashboard' : '/Queue/GetTicket' ?>"><i class="fa-solid fa-ticket"></i> SmartQueue</a>
     <div class="side-section">Student Information</div>
     <ul class="nav flex-column">
         <?php foreach($links as $l): ?>
-        <li class="nav-item"><a class="nav-link" href="<?= e(root_href($l[0])) ?>"><i class="fa-solid <?= e($l[1]) ?>"></i><span><?= e($l[2]) ?></span></a></li>
+        <li class="nav-item"><a class="nav-link <?= parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)===parse_url(root_href($l[0]),PHP_URL_PATH) && (!str_contains($l[0],'entity=') || str_contains($_SERVER['REQUEST_URI'],explode('?',$l[0])[1]))?'active':'' ?>" href="<?= e(root_href($l[0])) ?>"><i class="fa-solid <?= e($l[1]) ?>"></i><span><?= e($l[2]) ?></span></a></li>
         <?php endforeach; ?>
     </ul>
 </aside>

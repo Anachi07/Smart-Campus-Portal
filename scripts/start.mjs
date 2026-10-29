@@ -7,7 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const localPhp = '/workspace/tools/php';
 const php = process.env.PHP_BIN || (existsSync(`${localPhp}/usr/bin/php8.4`) ? `${localPhp}/usr/bin/php8.4` : 'php');
 const dotnet = process.env.DOTNET_BIN || (existsSync('/workspace/tools/dotnet/dotnet') ? '/workspace/tools/dotnet/dotnet' : 'dotnet');
-const env = {...process.env, CAMPUS_INTERNAL_SECRET: randomBytes(32).toString('hex'), ASPNETCORE_ENVIRONMENT: process.env.ASPNETCORE_ENVIRONMENT || 'Development'};
+const env = {...process.env, CAMPUS_INTERNAL_SECRET: randomBytes(32).toString('hex'), ASPNETCORE_ENVIRONMENT: process.env.ASPNETCORE_ENVIRONMENT || 'Development', TZ:'Asia/Manila', CAMPUS_MODE:process.env.CAMPUS_MODE || 'demo', CAMPUS_DATA_DIR:process.env.CAMPUS_DATA_DIR || path.join(root,'.runtime/data')};
 if (env.CAMPUS_DATA_DIR) {
  mkdirSync(env.CAMPUS_DATA_DIR, {recursive: true});
  env.CAMPUS_SIMS_DB = path.join(env.CAMPUS_DATA_DIR, 'SmartSIMS.db');
@@ -16,7 +16,7 @@ if (env.CAMPUS_DATA_DIR) {
  for (const [source, target] of [
   [path.join(root, 'sims/database/SmartSIMS.db'), env.CAMPUS_SIMS_DB],
   [path.join(root, 'queue/Data/smartqueue-data.json'), path.join(env.CAMPUS_QUEUE_DATA_DIR, 'smartqueue-data.json')]
- ]) if (!existsSync(target)) copyFileSync(source, target);
+ ]) if (!existsSync(target) && env.CAMPUS_MODE !== 'production') copyFileSync(source, target);
 }
 mkdirSync(path.join(root, '.runtime/sessions'), {recursive: true});
 let phpArgs = [];
@@ -25,7 +25,7 @@ if (php.startsWith(localPhp)) {
  const ext = `${localPhp}/usr/lib/php/20240924`;
  phpArgs = ['-n', '-d', `extension=${ext}/pdo.so`, '-d', `extension=${ext}/pdo_sqlite.so`, '-d', `extension=${ext}/sqlite3.so`];
 }
-phpArgs.push('-d', `session.save_path=${root}/.runtime/sessions`);
+phpArgs.push('-d', `session.save_path=${root}/.runtime/sessions`, '-d', 'upload_max_filesize=10M', '-d', 'post_max_size=12M', '-d', 'expose_php=0');
 const queueDll = env.CAMPUS_QUEUE_DLL || 'bin/Debug/net8.0/SmartQueueSystemGUI.dll';
 if (!env.CAMPUS_QUEUE_DLL) {
  const build = spawnSync(dotnet, ['build', 'queue/SmartQueueSystemGUI.csproj', '--no-restore'], {cwd:root, env, stdio:'inherit'});

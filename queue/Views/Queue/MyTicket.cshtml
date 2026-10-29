@@ -7,7 +7,7 @@
         <div>
             <p class="eyebrow">Ticket Status</p>
             <h1>Track your ticket</h1>
-            <p class="muted">Search by ticket number or phone number.</p>
+            <p class="muted">Search your own tickets by ticket number or phone number.</p>
         </div>
         <a class="btn btn-soft" asp-controller="Queue" asp-action="GetTicket">Get Ticket</a>
     </div>
@@ -21,7 +21,7 @@
     </div>
 
     <form method="get" class="panel search-row reveal-up delay-2">
-        <input asp-for="SearchText" name="searchText" placeholder="GEN-001 or 09XXXXXXXXX" />
+        <input asp-for="SearchText" name="searchText" placeholder="Your ticket number or phone" />
         <button class="btn" type="submit">Search</button>
     </form>
 
@@ -54,3 +54,7 @@
         </div>
     }
 </section>
+
+@section Scripts {
+<script>setInterval(()=>{if(!document.hidden && document.activeElement?.tagName!=='INPUT') window.location.reload();},15000);</script>
+}

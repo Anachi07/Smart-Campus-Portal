@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SmartQueueSystemGUI.Services;
 
-public record CampusIdentity(int Id, string FullName, string Role, string Phone);
+public record CampusIdentity(int Id, string FullName, string Role, string Phone, string Csrf);
 public class CampusSession
 {
     private readonly RequestDelegate _next;
@@ -15,6 +15,19 @@ public class CampusSession
             context.Response.Redirect(path.Contains("Logout", StringComparison.OrdinalIgnoreCase)
                 ? "/sims/logout.php" : path.Contains("Register", StringComparison.OrdinalIgnoreCase)
                 ? "/sims/register.php" : "/sims/login.php");
+            return;
+        }
+        if (path.Equals("/internal/queue-reload", StringComparison.OrdinalIgnoreCase)) {
+            var expected = Environment.GetEnvironmentVariable("CAMPUS_INTERNAL_SECRET") ?? "";
+            var supplied = context.Request.Headers["X-Campus-Secret"].ToString();
+            if (context.Request.Method != "POST" || expected.Length == 0 || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(expected), System.Text.Encoding.UTF8.GetBytes(supplied))) { context.Response.StatusCode=404; return; }
+            try {
+                if (context.Request.Query["validate"] == "1") {
+                    using var reader = new StreamReader(context.Request.Body);
+                    QueueStore.ValidateBackup(await reader.ReadToEndAsync());
+                } else store.Reload();
+                context.Response.StatusCode=204;
+            } catch (Exception error) when (error is JsonException or InvalidDataException) { context.Response.StatusCode=400; }
             return;
         }
         using var request = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:8082/campus-session.php");
@@ -37,6 +50,7 @@ public class CampusSession
             context.Session.SetString("FullName", user.FullName);
             context.Session.SetString("Role", user.Role);
             context.Session.SetString("PhoneNumber", user.PhoneNumber);
+            context.Session.SetString("CampusCsrf", identity.Csrf);
         }
         if (path == "/") { context.Response.Redirect("/sims/dashboard.php"); return; }
         // Identity and role management belongs to SIMS; queue-local passwords cannot bypass it.

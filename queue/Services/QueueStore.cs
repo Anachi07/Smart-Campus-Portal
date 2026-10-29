@@ -43,6 +43,16 @@ public class QueueStore
         }
     }
 
+    public static void ValidateBackup(string json) {
+        var data = JsonSerializer.Deserialize<SmartQueueData>(json);
+        if (data == null || data.Users == null || data.Tickets == null || data.Counters == null || data.Settings == null)
+            throw new InvalidDataException("Invalid queue backup.");
+        if (data.Users.Select(u => u.Id).Distinct().Count() != data.Users.Count || data.Tickets.Select(t => t.Id).Distinct().Count() != data.Tickets.Count)
+            throw new InvalidDataException("Queue backup contains duplicate record ids.");
+    }
+
+    public void Reload() { lock (_lock) { _data = LoadOrSeed(); } }
+
     public SmartQueueData Snapshot()
     {
         lock (_lock)
@@ -205,7 +215,10 @@ public class QueueStore
         {
             if (string.IsNullOrWhiteSpace(customerName)) return (false, "Customer name is required.", null);
             if (!IsValidPhilippinePhone(phone)) return (false, "Please enter a valid 11-digit phone number that starts with 09.", null);
-            if (string.IsNullOrWhiteSpace(service)) return (false, "Service type is required.", null);
+            if (!new[] { "General Inquiry", "Payment", "Registration", "Document Request", "Appointment", "Customer Service" }.Contains(service)) return (false, "Choose a valid campus service.", null);
+            if (!new[] { "Regular", "Priority" }.Contains(priority)) return (false, "Choose a valid priority type.", null);
+            var active = _data.Tickets.FirstOrDefault(t => t.CustomerUserId == customerUserId && customerUserId.HasValue && t.ServiceType == service && (t.Status == "Waiting" || t.Status == "Now Serving"));
+            if (active != null) return (true, "You already have an active ticket for this service.", active);
 
             var linkedUserId = ResolveCustomerUserId(phone, customerUserId);
             var ticket = new Ticket
@@ -355,9 +368,12 @@ public class QueueStore
         lock (_lock)
         {
             RefreshQueuePredictionsLocked();
+            var counter = _data.Counters.FirstOrDefault(c => c.Name == counterName && c.Status == "Available");
+            if (counter == null || _data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == counterName)) return null;
             var next = WaitingOrdered().FirstOrDefault();
             if (next == null) return null;
 
+            counter.Status = "Serving";
             next.Status = "Now Serving";
             next.CounterName = string.IsNullOrWhiteSpace(counterName) ? "Counter 1" : counterName;
             next.CalledAt = DateTime.Now;
@@ -386,7 +402,9 @@ public class QueueStore
         lock (_lock)
         {
             var ticket = _data.Tickets.FirstOrDefault(t => NormalizeTicketKey(t.TicketNumber) == NormalizeTicketKey(ticketNumber));
-            if (ticket == null) return false;
+            if (ticket == null || ticket.Status != "Now Serving") return false;
+            var counter = _data.Counters.FirstOrDefault(c => c.Name == ticket.CounterName);
+            if (counter != null) counter.Status = "Available";
             ticket.Status = "Served";
             ticket.CompletedAt = DateTime.Now;
             AddLog("Ticket completed", $"{ticket.TicketNumber} has been served.");
@@ -402,7 +420,9 @@ public class QueueStore
         lock (_lock)
         {
             var ticket = _data.Tickets.FirstOrDefault(t => NormalizeTicketKey(t.TicketNumber) == NormalizeTicketKey(ticketNumber));
-            if (ticket == null) return false;
+            if (ticket == null || ticket.Status != "Now Serving") return false;
+            var counter = _data.Counters.FirstOrDefault(c => c.Name == ticket.CounterName);
+            if (counter != null) counter.Status = "Available";
             ticket.Status = "Skipped";
             ticket.SkippedAt = DateTime.Now;
             AddLog("Ticket skipped", $"{ticket.TicketNumber} was skipped.");
@@ -419,7 +439,7 @@ public class QueueStore
         lock (_lock)
         {
             var ticket = _data.Tickets.FirstOrDefault(t => NormalizeTicketKey(t.TicketNumber) == NormalizeTicketKey(ticketNumber));
-            if (ticket == null) return false;
+            if (ticket == null || ticket.Status != "Skipped") return false;
             ticket.Status = "Waiting";
             ticket.CounterName = string.Empty;
             ticket.CalledAt = null;
@@ -455,11 +475,11 @@ public class QueueStore
         }
     }
 
-    public void AddCounter(string name, string staffName)
+    public bool AddCounter(string name, string staffName)
     {
         lock (_lock)
         {
-            if (string.IsNullOrWhiteSpace(name)) return;
+            if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 60 || (staffName?.Length ?? 0) > 80 || _data.Counters.Any(c => c.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase))) return false;
             _data.Counters.Add(new Counter
             {
                 Id = NextId(_data.Counters.Select(c => c.Id)),
@@ -469,18 +489,21 @@ public class QueueStore
             });
             AddLog("Counter added", $"{name} was added.");
             Save();
+            return true;
         }
     }
 
-    public void UpdateCounter(int id, string status)
+    public bool UpdateCounter(int id, string status)
     {
         lock (_lock)
         {
             var counter = _data.Counters.FirstOrDefault(c => c.Id == id);
-            if (counter == null) return;
+            if (counter == null || !new[] { "Available", "Serving", "On Break", "Offline" }.Contains(status)) return false;
+            if (_data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == counter.Name) || status == "Serving") return false;
             counter.Status = status;
             AddLog("Counter updated", $"{counter.Name} status changed to {status}.");
             Save();
+            return true;
         }
     }
 
@@ -490,7 +513,7 @@ public class QueueStore
         {
             _data.Settings.EstablishmentName = string.IsNullOrWhiteSpace(settings.EstablishmentName) ? "SmartQueueSystemGUI" : settings.EstablishmentName.Trim();
             _data.Settings.SmsProviderName = string.IsNullOrWhiteSpace(settings.SmsProviderName) ? "Phone Gateway" : settings.SmsProviderName.Trim();
-            _data.Settings.SmsApiKey = settings.SmsApiKey?.Trim() ?? string.Empty;
+            _data.Settings.SmsApiKey = string.Empty; // Provider delivery is not configured in this demo.
             _data.Settings.EnablePhoneNotifications = settings.EnablePhoneNotifications;
             _data.Settings.EnableAccountNotifications = settings.EnableAccountNotifications;
             _data.Settings.NotifyOnTicketCreated = settings.NotifyOnTicketCreated;
@@ -517,7 +540,7 @@ public class QueueStore
             _data.Settings.BusinessEndHour = Math.Clamp(settings.BusinessEndHour, _data.Settings.BusinessStartHour + 1, 24);
             _data.Settings.LowTrafficThreshold = Math.Clamp(settings.LowTrafficThreshold, 0, 1000);
             RefreshQueuePredictionsLocked();
-            AddLog("Settings updated", "Admin updated notification, waiting-time, and AI recommendation settings.");
+            AddLog("Settings updated", "Admin updated notification, waiting-time, and visit-time recommendation settings.");
             Save();
         }
     }
@@ -542,6 +565,7 @@ public class QueueStore
 
     private void RefreshQueuePredictionsLocked()
     {
+        if (ExpireOldTickets(_data)) Save();
         var now = DateTime.Now;
         var activeCounters = _data.Counters
             .Where(c => !string.Equals(c.Status, "Offline", StringComparison.OrdinalIgnoreCase))
@@ -632,7 +656,7 @@ public class QueueStore
     {
         if (!_data.Settings.EnableAiRecommendations)
         {
-            return "AI recommendation is disabled by admin.";
+            return "Visit-time recommendations are disabled by the administrator.";
         }
 
         var now = DateTime.Now;
@@ -697,7 +721,7 @@ public class QueueStore
     private string BuildAiInsight(Ticket ticket, int queueLength, int activeCounters)
     {
         var counter = string.IsNullOrWhiteSpace(ticket.PredictedCounterName) ? "the next available counter" : ticket.PredictedCounterName;
-        return $"AI-assisted estimate based on {queueLength} waiting ticket(s), {activeCounters} active counter(s), transaction type, priority, and previous service-time patterns. Suggested counter: {counter}.";
+        return $"Service-time estimate based on {queueLength} waiting ticket(s), {activeCounters} active counter(s), transaction type, priority, and previous service-time patterns. Suggested counter: {counter}.";
     }
 
     private static string FormatWaitMinutes(int minutes)
@@ -801,7 +825,7 @@ public class QueueStore
             PhoneNumber = phone,
             TicketNumber = ticketNumber,
             Message = message,
-            Status = string.IsNullOrWhiteSpace(_data.Settings.SmsApiKey) ? "Logged" : $"Queued via {_data.Settings.SmsProviderName}",
+            Status = "Logged only (not sent)",
             CreatedAt = DateTime.Now
         });
     }
@@ -849,7 +873,18 @@ public class QueueStore
         if (string.IsNullOrWhiteSpace(prefix)) prefix = "GEN";
         var today = DateTime.Today;
         var count = _data.Tickets.Count(t => t.CreatedAt.Date == today && t.TicketNumber.StartsWith(prefix)) + 1;
-        return $"{prefix}-{count:000}";
+        return $"{prefix}-{today:yyyyMMdd}-{count:000}";
+    }
+
+    private static bool ExpireOldTickets(SmartQueueData data) {
+        var changed=false;
+        foreach(var ticket in data.Tickets.Where(t => t.CreatedAt.Date < DateTime.Today && (t.Status == "Waiting" || t.Status == "Now Serving"))) {
+            ticket.Status="Expired"; ticket.EstimatedWaitText="Expired"; changed=true;
+        }
+        foreach(var counter in data.Counters.Where(c => c.Status == "Serving" && !data.Tickets.Any(t => t.Status == "Now Serving" && t.CounterName == c.Name))) {
+            counter.Status="Available"; changed=true;
+        }
+        return changed;
     }
 
     private SmartQueueData LoadOrSeed()
@@ -872,6 +907,7 @@ public class QueueStore
 
                     var changed = false;
                     changed |= EnsureDefaultAdmin(loaded);
+                    changed |= ExpireOldTickets(loaded);
                     EnsureDefaultSettings(loaded.Settings);
                     EnsureDefaultCounters(loaded);
 
@@ -879,7 +915,8 @@ public class QueueStore
                     return loaded;
                 }
             }
-            catch { }
+            catch (JsonException error) { throw new InvalidDataException("Queue data could not be read. Restore a valid backup; existing data has not been overwritten.", error); }
+            throw new InvalidDataException("Queue data is empty or invalid. Existing data has not been overwritten.");
         }
 
         var seeded = new SmartQueueData();
@@ -984,7 +1021,14 @@ public class QueueStore
     private void SaveData(SmartQueueData data)
     {
         var options = new JsonSerializerOptions { WriteIndented = true };
-        File.WriteAllText(_filePath, JsonSerializer.Serialize(data, options));
+        var temporary = _filePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(data, options));
+                stream.Write(bytes); stream.Flush(true);
+            }
+            File.Move(temporary, _filePath, true);
+        } finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     private static int NextId(IEnumerable<int> ids) => ids.Any() ? ids.Max() + 1 : 1;

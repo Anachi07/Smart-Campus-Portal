@@ -1,0 +1,8 @@
+<?php
+require_once __DIR__.'/../bootstrap.php';
+function auth_header(string $title): void { ?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?= e($title) ?> · Smart Campus Portal</title><link rel="stylesheet" href="/sims/assets/css/bootstrap.min.css"><link rel="stylesheet" href="/sims/assets/css/fontawesome.min.css"><link rel="stylesheet" href="/sims/assets/css/style.css"><link rel="stylesheet" href="/sims/assets/css/portal.css"></head><body class="auth-page"><a class="skip-link" href="#auth-content">Skip to content</a><main class="auth-container"><section class="auth-story"><a href="/" class="campus-wordmark"><img src="/sims/assets/images/logo.svg" alt="" width="42"><span>Smart Campus<small>STUDENT & SERVICE PORTAL</small></span></a><div class="story-copy"><span class="eyebrow">A MORE CONNECTED CAMPUS</span><h1>Your campus.<br>One place.</h1><p>Keep track of your academics and access campus services with a single account.</p><div class="story-features"><span><i class="fa-solid fa-graduation-cap"></i> Academic records</span><span><i class="fa-solid fa-ticket"></i> Campus queues</span><span><i class="fa-regular fa-calendar-check"></i> Attendance & schedules</span></div></div><small>Designed for students, educators, and families.</small></section><section class="auth-form-wrap" id="auth-content"><div class="auth-form-inner"><a href="/" class="back-link">← Back to campus home</a><span class="eyebrow">SMART CAMPUS PORTAL</span><h2><?= e($title) ?></h2>
+<?php }
+function auth_footer(): void { ?>
+</div></section></main><script src="/sims/assets/js/app.js"></script></body></html>
+<?php }

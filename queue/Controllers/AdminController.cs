@@ -22,7 +22,7 @@ public class AdminController : Controller
 
     private IActionResult RequireLogin()
     {
-        if (!IsAllowed()) return RedirectToAction("Login", "Auth");
+        if (!IsAllowed()) return Redirect("/sims/login.php");
         ViewBag.FullName = HttpContext.Session.GetString("FullName");
         ViewBag.Role = HttpContext.Session.GetString("Role");
         ViewBag.Settings = _store.Snapshot().Settings;
@@ -57,7 +57,7 @@ public class AdminController : Controller
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
         var ticket = _store.CallNext(counterName);
-        TempData["SuccessMessage"] = ticket == null ? "No waiting ticket available." : $"{ticket.TicketNumber} is now serving at {ticket.CounterName}.";
+        TempData["SuccessMessage"] = ticket == null ? "No ticket was called. Check that the selected counter is available, has no active ticket, and that visitors are waiting." : $"{ticket.TicketNumber} is now serving at {ticket.CounterName}.";
         return RedirectToAction("QueueControl");
     }
 
@@ -66,7 +66,7 @@ public class AdminController : Controller
     public IActionResult Complete(string ticketNumber)
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        _store.CompleteTicket(ticketNumber);
+        TempData["SuccessMessage"] = _store.CompleteTicket(ticketNumber) ? "Ticket marked served." : "This ticket cannot be updated from its current status. Refresh the queue and try again.";
         return RedirectToAction("QueueControl");
     }
 
@@ -75,7 +75,7 @@ public class AdminController : Controller
     public IActionResult Skip(string ticketNumber)
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        _store.SkipTicket(ticketNumber);
+        TempData["SuccessMessage"] = _store.SkipTicket(ticketNumber) ? "Ticket skipped." : "This ticket cannot be updated from its current status. Refresh the queue and try again.";
         return RedirectToAction("QueueControl");
     }
 
@@ -84,7 +84,7 @@ public class AdminController : Controller
     public IActionResult Return(string ticketNumber)
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        _store.ReturnTicket(ticketNumber);
+        TempData["SuccessMessage"] = _store.ReturnTicket(ticketNumber) ? "Ticket returned to the waiting queue." : "This ticket cannot be updated from its current status. Refresh the queue and try again.";
         return RedirectToAction("QueueControl");
     }
 
@@ -137,8 +137,7 @@ public class AdminController : Controller
     public IActionResult AddCounter(string name, string staffName)
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        _store.AddCounter(name, staffName);
-        TempData["SuccessMessage"] = "Counter saved successfully.";
+        TempData["SuccessMessage"] = _store.AddCounter(name, staffName) ? "Counter saved successfully." : "Use a unique counter name of up to 60 characters and a staff name of up to 80 characters.";
         return RedirectToAction("Counters");
     }
 
@@ -147,8 +146,7 @@ public class AdminController : Controller
     public IActionResult UpdateCounter(int id, string status)
     {
         var gate = RequireLogin(); if (gate is not EmptyResult) return gate;
-        _store.UpdateCounter(id, status);
-        TempData["SuccessMessage"] = "Counter status updated.";
+        TempData["SuccessMessage"] = _store.UpdateCounter(id, status) ? "Counter status updated." : "Cannot change this counter. Complete or skip its active ticket first; serving status is set when calling a ticket.";
         return RedirectToAction("Counters");
     }
 

@@ -15,7 +15,7 @@ public class QueueController : Controller
         var role = HttpContext.Session.GetString("Role");
         if (role == "Customer") return null;
         if (role == "Admin" || role == "Staff") return RedirectToAction("Dashboard", "Admin");
-        return RedirectToAction("Login", "Auth");
+        return Redirect("/sims/login.php");
     }
 
     public IActionResult GetTicket()
@@ -56,17 +56,19 @@ public class QueueController : Controller
 
     public IActionResult Ticket(string id)
     {
+        if (HttpContext.Session.GetInt32("UserId") == null) return Redirect("/sims/login.php");
         ViewBag.Settings = _store.Snapshot().Settings;
         var ticket = _store.FindTicket(id);
-        if (ticket == null) return RedirectToAction("GetTicket");
+        if (ticket == null || !CanView(ticket)) return NotFound();
         return View(ticket);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult TicketQr(string id)
     {
+        if (HttpContext.Session.GetInt32("UserId") == null) return Redirect("/sims/login.php");
         var ticket = _store.FindTicket(id);
-        if (ticket == null) return NotFound();
+        if (ticket == null || !CanView(ticket)) return NotFound();
 
         var ticketUrl = Url.Action("MyTicket", "Queue", new { searchText = ticket.TicketNumber }, Request.Scheme) ?? ticket.TicketNumber;
         using var generator = new QRCodeGenerator();
@@ -78,15 +80,19 @@ public class QueueController : Controller
 
     public IActionResult MyTicket(string? searchText)
     {
+        if (HttpContext.Session.GetInt32("UserId") == null) return Redirect("/sims/login.php");
         ViewBag.Settings = _store.Snapshot().Settings;
         var model = new TicketSearchViewModel { SearchText = searchText ?? string.Empty, BestVisitTime = _store.GetBestVisitTimeRecommendation() };
         if (!string.IsNullOrWhiteSpace(searchText))
         {
-            model.Results = _store.SearchTickets(searchText);
+            model.Results = _store.SearchTickets(searchText).Where(CanView).ToList();
             if (!model.Results.Any()) model.Message = "No ticket found. Check your ticket number or phone number.";
         }
+        if (string.IsNullOrWhiteSpace(searchText)) model.Results = _store.Snapshot().Tickets.Where(CanView).OrderByDescending(t => t.CreatedAt).Take(25).ToList();
         return View(model);
     }
+
+    private bool CanView(Ticket ticket) => HttpContext.Session.GetString("Role") is "Admin" or "Staff" || ticket.CustomerUserId == HttpContext.Session.GetInt32("UserId");
 
     [HttpGet]
     public IActionResult NotificationSummary()
@@ -117,7 +123,7 @@ public class QueueController : Controller
         var gate = RequireCustomer(); if (gate != null) return gate;
 
         var userId = HttpContext.Session.GetInt32("UserId");
-        if (!userId.HasValue) return RedirectToAction("Login", "Auth");
+        if (!userId.HasValue) return Redirect("/sims/login.php");
 
         var notifications = _store.GetAccountNotifications(userId.Value);
         _store.MarkAccountNotificationsRead(userId.Value);

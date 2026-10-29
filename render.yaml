@@ -6,5 +6,7 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
+      - key: CAMPUS_MODE
+        value: demo
       - key: CAMPUS_PUBLIC_HTTPS
         value: "1"

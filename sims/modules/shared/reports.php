@@ -1,15 +1,16 @@
 <?php
 require_once __DIR__ . '/../../includes/layout.php'; require_login(); require_once __DIR__ . '/../../includes/pdf.php';
 $type=$_GET['type']??'attendance';
+$scope=student_scope_sql(); $subjectScope=subject_scope_sql();
 $records=[]; $title='Attendance Report';
-if($type==='performance'){ $title='Performance Report'; $records=rows('SELECT u.full_name,s.student_no,sub.code,g.prelim,g.midterm,g.final,g.gpa,g.remarks FROM grades g JOIN students s ON s.id=g.student_id JOIN users u ON u.id=s.user_id JOIN subjects sub ON sub.id=g.subject_id ORDER BY u.full_name'); }
-elseif($type==='risk'){ $title='Risk Report'; $records=rows('SELECT u.full_name,s.student_no,p.attendance_rate,p.gpa,p.risk_score,p.dropout_probability,p.risk_level FROM predictions p JOIN students s ON s.id=p.student_id JOIN users u ON u.id=s.user_id WHERE p.id IN (SELECT MAX(id) FROM predictions GROUP BY student_id) ORDER BY p.risk_score DESC'); }
-else { $records=rows('SELECT a.date,u.full_name,s.student_no,sub.code,a.status,a.method,a.confidence FROM attendance a JOIN students s ON s.id=a.student_id JOIN users u ON u.id=s.user_id LEFT JOIN subjects sub ON sub.id=a.subject_id ORDER BY a.date DESC LIMIT 300'); }
+if($type==='performance'){ $title='Performance Report'; $records=rows('SELECT u.full_name,s.student_no,sub.code,g.prelim,g.midterm,g.final,g.gpa,g.remarks FROM grades g JOIN students s ON s.id=g.student_id JOIN users u ON u.id=s.user_id JOIN subjects sub ON sub.id=g.subject_id WHERE '.$scope.' AND '.$subjectScope.' ORDER BY u.full_name'); }
+elseif($type==='risk'){ $title='Risk Report'; $records=rows('SELECT u.full_name,s.student_no,p.attendance_rate,p.gpa,p.risk_score,p.risk_level FROM predictions p JOIN students s ON s.id=p.student_id JOIN users u ON u.id=s.user_id WHERE '.$scope.' AND p.id IN (SELECT MAX(id) FROM predictions GROUP BY student_id) ORDER BY p.risk_score DESC'); }
+else { $records=rows('SELECT a.date,u.full_name,s.student_no,sub.code,a.status,a.method FROM attendance a JOIN students s ON s.id=a.student_id JOIN users u ON u.id=s.user_id LEFT JOIN subjects sub ON sub.id=a.subject_id WHERE '.$scope.' AND '.$subjectScope.' ORDER BY a.date DESC'); }
 if(isset($_GET['export'])){
     $export=$_GET['export']; $filename=strtolower(str_replace(' ','_',$title));
-    if($export==='csv'){ header('Content-Type:text/csv'); header("Content-Disposition: attachment; filename=$filename.csv"); $out=fopen('php://output','w'); if($records){fputcsv($out,array_keys($records[0])); foreach($records as $r) fputcsv($out,$r);} exit; }
-    if($export==='excel'){ header('Content-Type: application/vnd.ms-excel'); header("Content-Disposition: attachment; filename=$filename.xls"); echo '<table border="1">'; if($records){echo '<tr>'; foreach(array_keys($records[0]) as $h) echo '<th>'.e($h).'</th>'; echo '</tr>'; foreach($records as $r){echo '<tr>'; foreach($r as $v) echo '<td>'.e($v).'</td>'; echo '</tr>';}} echo '</table>'; exit; }
-    if($export==='pdf'){ $lines=[]; foreach($records as $r){ $lines[]=implode(' | ', array_map('strval',$r)); } output_simple_pdf($filename.'.pdf',$title,$lines); }
+    if($export==='csv'){ header('Content-Type:text/csv'); header("Content-Disposition: attachment; filename=$filename.csv"); $out=fopen('php://output','w'); if($records){fputcsv($out,array_keys($records[0])); foreach($records as $r) fputcsv($out,array_map(fn($v)=>preg_match('/^[=+@\-\t\r]/',(string)$v)?"'".$v:$v,$r));} exit; }
+    if($export==='excel'){ header('Content-Type: application/vnd.ms-excel'); header("Content-Disposition: attachment; filename=$filename.xls"); echo '<table border="1">'; if($records){echo '<tr>'; foreach(array_keys($records[0]) as $h) echo '<th>'.e($h).'</th>'; echo '</tr>'; foreach($records as $r){echo '<tr>'; foreach($r as $v) echo '<td>'.e(preg_match('/^[=+@\-\t\r]/',(string)$v)?"'".$v:$v).'</td>'; echo '</tr>';}} echo '</table>'; exit; }
+    if($export==='pdf'){ $lines=$records?[implode(' | ',array_keys($records[0]))]:[]; foreach($records as $r){ $lines[]=implode(' | ', array_map('strval',$r)); } output_simple_pdf($filename.'.pdf',$title,$lines); }
 }
 render_header('Reports');
 ?>

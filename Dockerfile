@@ -6,8 +6,8 @@ RUN --mount=type=secret,id=system_ca,mode=0444 \
       sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources; \
       export APT_CONFIG=/tmp/campus-apt.conf; \
       printf 'Acquire::https::CaInfo "/run/secrets/system_ca";\n' > "$APT_CONFIG"; fi; \
-    apt-get update && apt-get install -y --no-install-recommends \
-      php-cli php-sqlite3 nodejs ca-certificates curl libicu72 libssl3 libgssapi-krb5-2 zlib1g \
+    apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      php-cli php-sqlite3 nodejs ca-certificates curl libicu72 libssl3 libgssapi-krb5-2 zlib1g tzdata \
     && sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
     && rm -rf /var/lib/apt/lists/* /tmp/campus-apt.conf
 ENV DOTNET_ROOT=/opt/dotnet PATH=/opt/dotnet:$PATH

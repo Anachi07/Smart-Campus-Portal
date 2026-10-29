@@ -23,12 +23,13 @@
     <title>@title - Smart Campus Portal</title>
     <link rel="icon" type="image/svg+xml" href="~/img/favicon.svg" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/campus.css" asp-append-version="true" />
 </head>
 <body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount">
     @if (!isAuthPage)
     {
         <header class="topbar app-topbar glass-nav">
-            <a class="brand brand-icon-only" asp-controller="Auth" asp-action="Login" aria-label="SmartQueueSystemGUI Home">
+            <a class="brand brand-icon-only" href="/portal" aria-label="Campus portal home">
                 <img class="brand-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
             </a>
             <button class="nav-toggle" type="button" aria-label="Toggle navigation" data-nav-toggle>Menu</button>
@@ -68,11 +69,11 @@
                 @if (!string.IsNullOrWhiteSpace(role))
                 {
                     <span class="user-chip"><span>@role</span>@fullName</span>
-                    <a class="btn btn-small btn-soft" asp-controller="Auth" asp-action="Logout">Logout</a>
+                    <form action="/sims/logout.php" method="post"><input type="hidden" name="csrf" value="@Context.Session.GetString("CampusCsrf")" /><button class="btn btn-small btn-soft">Sign out</button></form>
                 }
                 else
                 {
-                    <a class="btn btn-small" asp-controller="Auth" asp-action="Login">Login</a>
+                    <a class="btn btn-small" href="/sims/login.php">Sign in</a>
                 }
             </nav>
         </header>

@@ -16,4 +16,4 @@ foreach (['students', 'teachers', 'parents'] as $table) {
     $record = row("SELECT phone FROM $table WHERE user_id=?", [$user['id']]);
     if ($record && !empty($record['phone'])) { $phone = $record['phone']; break; }
 }
-echo json_encode(['id'=>(int)$user['id'], 'fullName'=>$user['full_name'], 'role'=>$user['role'], 'phone'=>$phone]);
+echo json_encode(['id'=>(int)$user['id'], 'fullName'=>$user['full_name'], 'role'=>$user['role'], 'phone'=>$phone, 'csrf'=>csrf_token()]);

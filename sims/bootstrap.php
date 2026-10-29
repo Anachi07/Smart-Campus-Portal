@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/config/config.php';
+date_default_timezone_set('Asia/Manila');
+ini_set('session.use_strict_mode', '1');
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -25,6 +27,7 @@ function db(): PDO {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $pdo->exec('PRAGMA foreign_keys = ON');
+        $pdo->exec('PRAGMA busy_timeout = 5000');
         init_database($pdo);
     }
     return $pdo;
@@ -38,7 +41,7 @@ function init_database(PDO $pdo): void {
         "CREATE TABLE IF NOT EXISTS school_years (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, starts_at TEXT, ends_at TEXT, is_active INTEGER DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS sections (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, course_id INTEGER, year_level TEXT, adviser_teacher_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(course_id) REFERENCES courses(id))",
         "CREATE TABLE IF NOT EXISTS subjects (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, title TEXT NOT NULL, course_id INTEGER, year_level TEXT, units INTEGER DEFAULT 3, teacher_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(course_id) REFERENCES courses(id))",
-        "CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, student_no TEXT UNIQUE NOT NULL, course_id INTEGER, section_id INTEGER, year_level TEXT, birthdate TEXT, gender TEXT, address TEXT, phone TEXT, gpa REAL DEFAULT 1.75, attendance_rate REAL DEFAULT 92.4, risk_level TEXT DEFAULT 'Low', created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(course_id) REFERENCES courses(id), FOREIGN KEY(section_id) REFERENCES sections(id))",
+        "CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, student_no TEXT UNIQUE NOT NULL, course_id INTEGER, section_id INTEGER, year_level TEXT, birthdate TEXT, gender TEXT, address TEXT, phone TEXT, gpa REAL DEFAULT 0, attendance_rate REAL DEFAULT 0, risk_level TEXT DEFAULT 'Low', created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(course_id) REFERENCES courses(id), FOREIGN KEY(section_id) REFERENCES sections(id))",
         "CREATE TABLE IF NOT EXISTS teachers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, employee_no TEXT UNIQUE NOT NULL, department TEXT, specialization TEXT, phone TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id))",
         "CREATE TABLE IF NOT EXISTS parents (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, student_id INTEGER, relationship TEXT, phone TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(student_id) REFERENCES students(id))",
         "CREATE TABLE IF NOT EXISTS schedules (id INTEGER PRIMARY KEY AUTOINCREMENT, subject_id INTEGER, section_id INTEGER, teacher_id INTEGER, day_of_week TEXT, start_time TEXT, end_time TEXT, room TEXT, FOREIGN KEY(subject_id) REFERENCES subjects(id), FOREIGN KEY(section_id) REFERENCES sections(id), FOREIGN KEY(teacher_id) REFERENCES teachers(id))",
@@ -52,6 +55,12 @@ function init_database(PDO $pdo): void {
         "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
     ];
     foreach ($schema as $sql) { $pdo->exec($sql); }
+    $columns = array_column($pdo->query('PRAGMA table_info(users)')->fetchAll(), 'name');
+    if (!in_array('auth_version', $columns, true)) $pdo->exec('ALTER TABLE users ADD COLUMN auth_version INTEGER NOT NULL DEFAULT 0');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS login_attempts (identity TEXT PRIMARY KEY, failures INTEGER NOT NULL, blocked_until INTEGER NOT NULL)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, event_date TEXT NOT NULL, description TEXT, created_by INTEGER REFERENCES users(id))');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS attendance_student_date ON attendance(student_id,date)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS schedules_section_subject ON schedules(section_id,subject_id)');
     seed_database($pdo);
 }
 
@@ -74,6 +83,12 @@ function seed_database(PDO $pdo): void {
         return (int)$pdo->lastInsertId();
     };
 
+    if (getenv('CAMPUS_MODE') === 'production') {
+        $password = getenv('CAMPUS_ADMIN_PASSWORD') ?: '';
+        if (strlen($password) < 12) throw new RuntimeException('Set CAMPUS_ADMIN_PASSWORD to at least 12 characters for first production startup.');
+        $addUser(getenv('CAMPUS_ADMIN_USERNAME') ?: 'schooladmin', $password, 'Admin', 'School Administrator', null);
+        return;
+    }
     $adminId = $addUser('ADMIN', 'ADMIN', 'Admin', 'Admin User', 'admin@smartsims.local');
     $teacher1 = $addUser('TCH001', 'teacher123', 'Teacher', 'Prof. Maria Santos', 'maria.santos@smartsims.local');
     $teacher2 = $addUser('TCH002', 'teacher123', 'Teacher', 'Prof. Robert Cruz', 'robert.cruz@smartsims.local');
@@ -130,7 +145,7 @@ function seed_database(PDO $pdo): void {
             $fin = 82 + ($sid*1.2) + $sub;
             if ($sid === 1) { $pre=70; $mid=73; $fin=75; }
             if ($sid === 3) { $pre=74; $mid=76; $fin=77; }
-            $gpa = round((100 - (($pre+$mid+$fin)/3)) / 20 + 1, 2);
+            $gpa = grade_to_gpa(($pre+$mid+$fin)/3);
             $remarks = (($pre+$mid+$fin)/3) >= 75 ? 'Passed' : 'Failed';
             $stmt = $pdo->prepare('INSERT INTO grades(student_id,subject_id,prelim,midterm,final,gpa,remarks,encoded_by) VALUES(?,?,?,?,?,?,?,?)');
             $stmt->execute([$sid,$sub,$pre,$mid,$fin,$gpa,$remarks,$teacher1]);
@@ -171,7 +186,7 @@ function asset(string $path): string { return root_href('assets/' . ltrim($path,
 
 function role_id(string $name): int { $stmt = db()->prepare('SELECT id FROM roles WHERE name=?'); $stmt->execute([$name]); return (int)$stmt->fetchColumn(); }
 function role_name(?int $id=null): string { $id = $id ?? ($_SESSION['role_id'] ?? 0); $stmt = db()->prepare('SELECT name FROM roles WHERE id=?'); $stmt->execute([$id]); return (string)$stmt->fetchColumn(); }
-function current_user(): ?array { if (empty($_SESSION['user_id'])) return null; $stmt = db()->prepare('SELECT u.*, r.name AS role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?'); $stmt->execute([$_SESSION['user_id']]); return $stmt->fetch() ?: null; }
+function current_user(): ?array { if (empty($_SESSION['user_id'])) return null; $stmt = db()->prepare('SELECT u.*, r.name AS role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.id=?'); $stmt->execute([$_SESSION['user_id']]); $user = $stmt->fetch() ?: null; if ($user && ($user['status'] !== 'Active' || (string)($_SESSION['workspace_epoch'] ?? 'initial') !== setting('session_epoch','initial'))) return null; if ($user && (int)($user['auth_version'] ?? 0) !== (int)($_SESSION['auth_version'] ?? 0)) return null; return $user; }
 function require_login(): void {
     if (empty($_SESSION['user_id'])) { redirect_root('login.php'); }
     $activeUser = current_user();
@@ -179,10 +194,10 @@ function require_login(): void {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT) { session_destroy(); redirect_root('login.php?timeout=1'); }
     $_SESSION['last_activity'] = time();
 }
-function require_role(array $roles): void { require_login(); if (!in_array(role_name(), $roles, true)) { http_response_code(403); exit('403 Forbidden'); } }
+function require_role(array $roles): void { require_login(); if (!in_array(current_user()['role'], $roles, true)) { http_response_code(403); exit('403 Forbidden'); } }
 function csrf_token(): string { if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); } return $_SESSION['csrf']; }
 function csrf_field(): string { return '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">'; }
-function check_csrf(): void { if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']))) { http_response_code(419); exit('Invalid CSRF token.'); } }
+function check_csrf(): void { if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!isset($_POST['csrf']) || !is_string($_POST['csrf']) || !hash_equals($_SESSION['csrf'] ?? '', $_POST['csrf']))) { http_response_code(419); exit('Invalid CSRF token.'); } }
 function set_flash(string $type, string $message): void { $_SESSION['flash'] = ['type'=>$type,'message'=>$message]; }
 function flash(): string { if (empty($_SESSION['flash'])) return ''; $f = $_SESSION['flash']; unset($_SESSION['flash']); return '<div class="alert alert-'.e($f['type']).' alert-dismissible fade show">'.e($f['message']).'<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; }
 function log_activity(?int $userId, string $action, string $details=''): void { $stmt = db()->prepare('INSERT INTO activity_logs(user_id,action,details) VALUES(?,?,?)'); $stmt->execute([$userId, $action, $details]); }
@@ -192,11 +207,11 @@ function row(string $sql, array $params=[]): ?array { $st=db()->prepare($sql); $
 function scalar(string $sql, array $params=[]): mixed { $st=db()->prepare($sql); $st->execute($params); return $st->fetchColumn(); }
 
 function risk_from(float $attendanceRate, float $gpa): array {
-    $riskScore = min(100, max(0, round(((100 - $attendanceRate) * 0.75) + ($gpa * 18), 2)));
-    $dropout = min(95, max(2, round($riskScore * 0.62, 2)));
+    $riskScore = min(100, max(0, round(((100 - $attendanceRate) * 0.75) + (max(0, $gpa - 1) * 10), 2)));
+    $dropout = 0; // No validated model exists to estimate a dropout probability.
     $gradePrediction = max(1.00, min(5.00, round($gpa + ((75 - min($attendanceRate,75)) / 80), 2)));
-    if ($attendanceRate < 75 && $gpa < 2.5) { $level = 'High'; }
-    elseif ($attendanceRate < 85 || $gpa < 2.75) { $level = 'Medium'; }
+    if ($attendanceRate < 75 || $gpa > 3.0) { $level = 'High'; }
+    elseif ($attendanceRate < 85 || $gpa > 2.5) { $level = 'Medium'; }
     else { $level = 'Low'; }
     return [$riskScore, $gradePrediction, $dropout, $level];
 }
@@ -205,10 +220,10 @@ function generate_prediction(int $studentId, bool $log=true): void {
     $student = row('SELECT * FROM students WHERE id=?', [$studentId]);
     if (!$student) return;
     $total = (int)scalar('SELECT COUNT(*) FROM attendance WHERE student_id=?', [$studentId]);
-    $present = (int)scalar("SELECT COUNT(*) FROM attendance WHERE student_id=? AND status='Present'", [$studentId]);
-    $rate = $total > 0 ? round(($present/$total)*100, 2) : (float)$student['attendance_rate'];
-    $gpa = (float)(scalar('SELECT AVG(gpa) FROM grades WHERE student_id=?', [$studentId]) ?: $student['gpa']);
-    [$score,$gradePrediction,$dropout,$level] = risk_from($rate, $gpa);
+    $present = (int)scalar("SELECT COUNT(*) FROM attendance WHERE student_id=? AND status IN ('Present','Late','Excused')", [$studentId]);
+    $rate = $total > 0 ? round(($present/$total)*100, 2) : 0;
+    $gpa = (float)(scalar('SELECT AVG(gpa) FROM grades WHERE student_id=?', [$studentId]) ?: 0);
+    [$score,$gradePrediction,$dropout,$level] = risk_from($total > 0 ? $rate : 100, $gpa > 0 ? $gpa : 1);
     $stmt = db()->prepare('INSERT INTO predictions(student_id,attendance_rate,gpa,risk_score,grade_prediction,dropout_probability,risk_level) VALUES(?,?,?,?,?,?,?)');
     $stmt->execute([$studentId,$rate,$gpa,$score,$gradePrediction,$dropout,$level]);
     db()->prepare('UPDATE students SET attendance_rate=?, gpa=?, risk_level=? WHERE id=?')->execute([$rate,$gpa,$level,$studentId]);
@@ -227,5 +242,11 @@ function option_list(string $table, string $label='name'): array {
     return rows("SELECT id, $safeLabel AS label FROM $safeTable ORDER BY $safeLabel");
 }
 
+require_once __DIR__ . '/includes/access.php';
 db();
+if (setting('risk_rules_version') !== '3') {
+    foreach(rows('SELECT id,prelim,midterm,final FROM grades') as $grade) db()->prepare('UPDATE grades SET gpa=? WHERE id=?')->execute([grade_to_gpa(((float)$grade['prelim']+(float)$grade['midterm']+(float)$grade['final'])/3),$grade['id']]);
+    foreach(rows('SELECT id FROM students') as $record) generate_prediction((int)$record['id'],false);
+    db()->exec("INSERT INTO settings(key,value) VALUES('risk_rules_version','3') ON CONFLICT(key) DO UPDATE SET value='3'");
+}
 ?>

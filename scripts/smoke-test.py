@@ -15,7 +15,7 @@ def token(body,name):
 def login(username,password):
  c=client();_,body=get(c,'/sims/login.php')
  url,body=post(c,'/sims/login.php',{'csrf':token(body,'csrf'),'username':username,'password':password})
- assert url.endswith('/portal') and 'Two connected services' in body, (url,body[:100])
+ assert url.endswith('/portal') and 'Your academics' in body, (url,body[:100])
  return c
 c=client()
 assert get(c,'/Admin/Dashboard')[0].endswith('/sims/login.php')
@@ -43,7 +43,8 @@ _,body=get(admin,'/Admin/QueueControl')
 post(admin,'/Admin/CallNext',{'__RequestVerificationToken':token(body,'__RequestVerificationToken'),'counterName':'Counter 1'})
 assert 'Serving' in get(admin,'/Admin/QueueControl')[1]
 print('PASS admin call-next action')
-get(student,'/sims/logout.php')
+_,body=get(student,'/sims/logout.php')
+post(student,'/sims/logout.php',{'csrf':token(body,'csrf')})
 assert get(student,'/Queue/GetTicket')[0].endswith('/sims/login.php')
 print('PASS logout revokes queue access')
 for p in ['/sims/database/SmartSIMS.db','/sims/bootstrap.php','/sims/config/config.php','/sims/campus-session.php']:
