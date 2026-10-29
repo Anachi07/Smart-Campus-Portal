@@ -1,0 +1,88 @@
+@using Microsoft.AspNetCore.Http
+@inject SmartQueueSystemGUI.Services.QueueStore StoreSvc
+@{
+    var role = Context.Session.GetString("Role") ?? string.Empty;
+    var fullName = Context.Session.GetString("FullName") ?? string.Empty;
+    var userId = Context.Session.GetInt32("UserId");
+    var settings = StoreSvc.Snapshot().Settings;
+    var unreadCount = userId.HasValue ? StoreSvc.GetUnreadNotificationCount(userId.Value) : 0;
+    var notificationSummaryUrl = role == "Customer"
+        ? Url.Action("NotificationSummary", "Queue")
+        : (role == "Admin" || role == "Staff" ? Url.Action("NotificationSummary", "Admin") : string.Empty);
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+    var isAuthPage = controller == "Auth";
+    var title = ViewData["Title"] ?? "SmartQueueSystemGUI";
+    var theme = (settings.AccentTheme ?? "Blue").ToLowerInvariant();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - Smart Campus Portal</title>
+    <link rel="icon" type="image/svg+xml" href="~/img/favicon.svg" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount">
+    @if (!isAuthPage)
+    {
+        <header class="topbar app-topbar glass-nav">
+            <a class="brand brand-icon-only" asp-controller="Auth" asp-action="Login" aria-label="SmartQueueSystemGUI Home">
+                <img class="brand-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+            </a>
+            <button class="nav-toggle" type="button" aria-label="Toggle navigation" data-nav-toggle>Menu</button>
+            <nav class="topnav" aria-label="Top navigation" data-topnav>
+                <a href="/portal">Campus Portal</a>
+                <a href="/sims/dashboard.php">SmartSIMS</a>
+                @if (role == "Customer")
+                {
+                    <a asp-controller="Queue" asp-action="GetTicket" class="@(controller == "Queue" && action == "GetTicket" ? "active" : "")">Get Ticket</a>
+                    <a asp-controller="Queue" asp-action="MyTicket" class="@(controller == "Queue" && action == "MyTicket" ? "active" : "")">Track</a>
+                    <a asp-controller="Queue" asp-action="Notifications" class="notification-link @(controller == "Queue" && action == "Notifications" ? "active" : "")">
+                        Notifications
+                        @if (unreadCount > 0)
+                        {
+                            <span class="notif-badge">@unreadCount</span>
+                        }
+                    </a>
+                }
+                else if (role == "Admin" || role == "Staff")
+                {
+                    <a asp-controller="Admin" asp-action="Dashboard" class="@(controller == "Admin" && action == "Dashboard" ? "active" : "")">Dashboard</a>
+                    <a asp-controller="Admin" asp-action="QueueControl" class="@(controller == "Admin" && action == "QueueControl" ? "active" : "")">Queue</a>
+                    <a asp-controller="Admin" asp-action="Notifications" class="notification-link @(controller == "Admin" && action == "Notifications" ? "active" : "")">
+                        Alerts
+                        @if (unreadCount > 0)
+                        {
+                            <span class="notif-badge">@unreadCount</span>
+                        }
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Queue" asp-action="MyTicket" class="@(controller == "Queue" && action == "MyTicket" ? "active" : "")">Track Ticket</a>
+                }
+
+                <a asp-controller="Home" asp-action="Display" target="_blank">Display</a>
+                @if (!string.IsNullOrWhiteSpace(role))
+                {
+                    <span class="user-chip"><span>@role</span>@fullName</span>
+                    <a class="btn btn-small btn-soft" asp-controller="Auth" asp-action="Logout">Logout</a>
+                }
+                else
+                {
+                    <a class="btn btn-small" asp-controller="Auth" asp-action="Login">Login</a>
+                }
+            </nav>
+        </header>
+    }
+
+    <main class="@(isAuthPage ? "auth-shell" : "page")">
+        @RenderBody()
+    </main>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

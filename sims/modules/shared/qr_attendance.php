@@ -1,0 +1,12 @@
+<?php
+require_once __DIR__ . '/../../includes/layout.php'; require_login(); check_csrf();
+if($_SERVER['REQUEST_METHOD']==='POST'){
+    $sid=(int)($_POST['student_id']??0); $mode=$_POST['mode']??'QR Code';
+    db()->prepare('INSERT INTO attendance(student_id,subject_id,date,status,method,confidence,marked_by) VALUES(?,?,?,?,?,?,?)')->execute([$sid,1,date('Y-m-d'),'Present',$mode,100,$_SESSION['user_id']]);
+    generate_prediction($sid,false); set_flash('success',"$mode attendance recorded successfully."); redirect('qr_attendance.php');
+}
+$students=rows('SELECT s.*,u.full_name FROM students s JOIN users u ON u.id=s.user_id ORDER BY u.full_name');
+render_header('QR / RFID Attendance');
+?>
+<div class="page-title"><div><h1>QR Attendance & RFID Simulation</h1><p>Scan a student QR/ID number or simulate RFID tapping.</p></div></div>
+<div class="row g-4"><div class="col-lg-5"><div class="panel text-center"><div class="panel-title">Live QR Scanner</div><div class="mx-auto my-3" style="width:240px;height:240px;border:12px solid #0d6efd;border-radius:20px;background:repeating-linear-gradient(45deg,#fff 0 10px,#e8f1ff 10px 20px);display:grid;place-items:center"><i class="fa-solid fa-qrcode" style="font-size:120px;color:#062b55"></i></div><p class="text-muted">Scanner is simulated for presentation. Select a student and click Scan.</p><form method="post"><?= csrf_field() ?><select name="student_id" class="form-select mb-3"><?php foreach($students as $s): ?><option value="<?= e($s['id']) ?>"><?= e($s['student_no'].' - '.$s['full_name']) ?></option><?php endforeach; ?></select><select name="mode" class="form-select mb-3"><option>QR Code</option><option>RFID Simulation</option></select><button class="btn btn-primary w-100"><i class="fa-solid fa-check me-2"></i>Scan and Mark Present</button></form></div></div><div class="col-lg-7"><div class="panel"><div class="panel-title">Recent QR/RFID Attendance</div><table class="table"><thead><tr><th>Date</th><th>Student</th><th>Method</th><th>Status</th></tr></thead><tbody><?php foreach(rows("SELECT a.*,u.full_name,s.student_no FROM attendance a JOIN students s ON s.id=a.student_id JOIN users u ON u.id=s.user_id WHERE a.method IN ('QR Code','RFID Simulation') ORDER BY a.created_at DESC LIMIT 20") as $a): ?><tr><td><?= e($a['date']) ?></td><td><?= e($a['student_no'].' - '.$a['full_name']) ?></td><td><?= e($a['method']) ?></td><td><span class="badge bg-success"><?= e($a['status']) ?></span></td></tr><?php endforeach; ?></tbody></table></div></div></div><?php render_footer(); ?>

@@ -1,0 +1,56 @@
+@model TicketSearchViewModel
+@{
+    ViewData["Title"] = "My Ticket";
+}
+<section class="content-shell narrow animated-bg-soft">
+    <div class="section-head compact reveal-up">
+        <div>
+            <p class="eyebrow">Ticket Status</p>
+            <h1>Track your ticket</h1>
+            <p class="muted">Search by ticket number or phone number.</p>
+        </div>
+        <a class="btn btn-soft" asp-controller="Queue" asp-action="GetTicket">Get Ticket</a>
+    </div>
+
+    <div class="panel ai-recommendation-card reveal-up delay-1">
+        <div>
+            <p class="eyebrow">Best Time Today</p>
+            <h2>@Model.BestVisitTime</h2>
+        </div>
+        <span class="signal-dot"></span>
+    </div>
+
+    <form method="get" class="panel search-row reveal-up delay-2">
+        <input asp-for="SearchText" name="searchText" placeholder="GEN-001 or 09XXXXXXXXX" />
+        <button class="btn" type="submit">Search</button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <div class="alert alert-error">@Model.Message</div>
+    }
+
+    @if (Model.Results.Any())
+    {
+        <div class="cards-list">
+            @foreach (var ticket in Model.Results)
+            {
+                <article class="ticket-card reveal-up">
+                    <div>
+                        <span class="pill status-@QueueStore.StatusCss(ticket.Status)">@ticket.Status • @ticket.EstimatedWaitText</span>
+                        <h2>@ticket.TicketNumber</h2>
+                        <p>@ticket.CustomerName • @QueueStore.MaskPhone(ticket.PhoneNumber)</p>
+                    </div>
+                    <div class="ticket-meta">
+                        <span>Service <strong>@ticket.ServiceType</strong></span>
+                        <span>Priority <strong>@ticket.PriorityType</strong></span>
+                        <span>Counter <strong>@(string.IsNullOrWhiteSpace(ticket.CounterName) ? (string.IsNullOrWhiteSpace(ticket.PredictedCounterName) ? "Waiting" : ticket.PredictedCounterName) : ticket.CounterName)</strong></span>
+                        <span>Estimated Call <strong>@(ticket.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating")</strong></span>
+                        <span>Best Time <strong>@ticket.BestVisitTime</strong></span>
+                        <span>Created <strong>@ticket.CreatedAt.ToString("g")</strong></span>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

@@ -1,0 +1,92 @@
+@model QueueControlViewModel
+@{
+    ViewData["Title"] = "Queue Control";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Queue Control</p>
+                <h1>Manage Queue</h1>
+                <div class="mini-insight"><strong>@Model.QueueLoadLabel</strong><span>Best time: @Model.BestVisitTime</span></div>
+            </div>
+            <form asp-action="CallNext" method="post" class="call-next-card">
+                @Html.AntiForgeryToken()
+                <select name="counterName" aria-label="Select counter">
+                    @foreach (var c in Model.Counters.Where(c => c.Status != "Offline"))
+                    {
+                        <option value="@c.Name">@c.Name</option>
+                    }
+                </select>
+                <button class="btn btn-animated" type="submit">Call Next</button>
+            </form>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+        {
+            <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+        }
+
+        <div class="queue-grid">
+            <div class="panel queue-panel primary-panel reveal-up delay-1">
+                <div class="panel-head"><h2>Now Serving</h2><span>@Model.NowServingTickets.Count active</span></div>
+                @if (!Model.NowServingTickets.Any())
+                {
+                    <p class="muted empty-state">No ticket currently being served.</p>
+                }
+                @foreach (var t in Model.NowServingTickets)
+                {
+                    <div class="queue-row serving">
+                        <div>
+                            <strong>@t.TicketNumber</strong>
+                            <span>@t.CustomerName · @QueueStore.MaskPhone(t.PhoneNumber)</span>
+                            <em>@t.ServiceType · @t.CounterName · @t.EstimatedWaitText</em>
+                        </div>
+                        <div class="row-actions">
+                            <form asp-action="Complete" method="post">@Html.AntiForgeryToken()<input type="hidden" name="ticketNumber" value="@t.TicketNumber" /><button class="btn btn-small">Served</button></form>
+                            <form asp-action="Skip" method="post">@Html.AntiForgeryToken()<input type="hidden" name="ticketNumber" value="@t.TicketNumber" /><button class="btn btn-small btn-warn">Skip</button></form>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="panel queue-panel reveal-up delay-2">
+                <div class="panel-head"><h2>Waiting Queue</h2><span>@Model.WaitingTickets.Count waiting</span></div>
+                @if (!Model.WaitingTickets.Any())
+                {
+                    <p class="muted empty-state">No waiting tickets.</p>
+                }
+                @foreach (var t in Model.WaitingTickets)
+                {
+                    <div class="queue-row">
+                        <div>
+                            <strong>@t.TicketNumber</strong>
+                            <span>@t.CustomerName · @t.ServiceType</span>
+                            <em>@t.PriorityType · @QueueStore.MaskPhone(t.PhoneNumber)</em>
+                            <small class="queue-estimate">ETA @t.EstimatedWaitText • @(t.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "calculating") • @t.PredictedCounterName</small>
+                        </div>
+                        <span class="pill @(t.PriorityType == "Priority" ? "status-priority" : "")">@t.PriorityType</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="panel reveal-up delay-3">
+            <div class="panel-head"><h2>Skipped Tickets</h2><span>@Model.SkippedTickets.Count skipped</span></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Ticket</th><th>Name</th><th>Phone</th><th>Service</th><th>Action</th></tr></thead>
+                    <tbody>
+                    @foreach (var t in Model.SkippedTickets)
+                    {
+                        <tr>
+                            <td><strong>@t.TicketNumber</strong></td><td>@t.CustomerName</td><td>@QueueStore.MaskPhone(t.PhoneNumber)</td><td>@t.ServiceType</td>
+                            <td><form asp-action="Return" method="post">@Html.AntiForgeryToken()<input type="hidden" name="ticketNumber" value="@t.TicketNumber" /><button class="btn btn-small btn-soft">Return</button></form></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

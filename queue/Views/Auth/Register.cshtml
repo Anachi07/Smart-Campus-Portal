@@ -1,0 +1,47 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+    var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
+}
+<section class="register-page animated-bg-soft">
+    <div class="auth-card wide polished reveal-up">
+        <div class="section-head compact">
+            <div>
+                <p class="eyebrow">Customer Registration</p>
+                <h1>Create your account</h1>
+                <p class="muted">Use your real name and active phone number for ticket alerts.</p>
+            </div>
+            <a class="btn btn-soft" asp-controller="Auth" asp-action="Login">Back to Login</a>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-error">@Model.ErrorMessage</div>
+        }
+
+        <form asp-action="Register" method="post" class="form-grid" autocomplete="on">
+            @Html.AntiForgeryToken()
+            <label>Full Name
+                <input asp-for="FullName" placeholder="Juan Dela Cruz" autocomplete="name" required />
+            </label>
+            <label>Phone Number
+                <input asp-for="PhoneNumber" placeholder="09XXXXXXXXX" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" autocomplete="tel" required />
+                <small class="field-help">11 digits, starts with 09</small>
+            </label>
+            <label>Username
+                <input asp-for="Username" placeholder="Choose username" autocomplete="username" required />
+            </label>
+            <label>Password
+                <input asp-for="Password" type="password" placeholder="Minimum 6 characters" autocomplete="new-password" required />
+            </label>
+            <label class="span-2">Confirm Password
+                <input asp-for="ConfirmPassword" type="password" placeholder="Re-enter password" autocomplete="new-password" required />
+            </label>
+            <button class="btn btn-animated span-2" type="submit">Create Account</button>
+        </form>
+    </div>
+
+    <div class="system-credit system-credit-icon-only reveal-up delay-1">
+        <img src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+    </div>
+</section>

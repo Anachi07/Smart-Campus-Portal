@@ -1,0 +1,9 @@
+UI/UX fixes included:
+- Professional dashboard inspired by the provided Smart SIMS reference image.
+- Sidebar fixed on the left and scrolls vertically only.
+- Main content uses scrollable pages.
+- Dashboard layout uses docked panels and percent-based columns.
+- Minimize/maximize/resize friendly forms.
+- Login and Register forms are included.
+- Backend and Frontend folders are separated.
+- Includes .csproj, GlobalUsings.cs, and Program.cs.

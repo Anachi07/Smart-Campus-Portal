@@ -1,0 +1,74 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Dashboard</p>
+                <h1>Queue Overview</h1>
+                <p class="muted">Live queue status, waiting time, counters, and alerts.</p>
+            </div>
+            <div class="actions slim">
+                <a class="btn" asp-action="QueueControl">Manage Queue</a>
+                <a class="btn btn-soft" asp-controller="Home" asp-action="Display" target="_blank">Display</a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+        {
+            <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+        }
+
+        <div class="stat-grid reveal-up delay-1">
+            <div class="stat-card accent"><span>Waiting</span><strong>@Model.Waiting</strong><small>clients</small></div>
+            <div class="stat-card"><span>Now Serving</span><strong>@Model.NowServing</strong><small>active</small></div>
+            <div class="stat-card"><span>Served</span><strong>@Model.ServedToday</strong><small>today</small></div>
+            <div class="stat-card"><span>Skipped</span><strong>@Model.SkippedToday</strong><small>today</small></div>
+            <div class="stat-card"><span>Total</span><strong>@Model.TotalToday</strong><small>today</small></div>
+            <div class="stat-card"><span>Avg. Wait</span><strong>@Model.AverageWaitingMinutes</strong><small>minutes</small></div>
+            <div class="stat-card accent"><span>Predicted Wait</span><strong>@Model.PredictedAverageWaitMinutes</strong><small>minutes</small></div>
+            <div class="stat-card"><span>Best Time</span><strong class="stat-text">@Model.BestVisitTime</strong><small>@Model.QueueLoadLabel</small></div>
+        </div>
+
+        <div class="two-col">
+            <div class="panel reveal-up delay-2">
+                <div class="panel-head"><h2>Recent Tickets</h2><a asp-action="Reports">View all</a></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Ticket</th><th>Name</th><th>Phone</th><th>Service</th><th>Status</th></tr></thead>
+                        <tbody>
+                        @foreach (var t in Model.RecentTickets)
+                        {
+                            <tr>
+                                <td><strong>@t.TicketNumber</strong></td>
+                                <td>@t.CustomerName</td>
+                                <td>@QueueStore.MaskPhone(t.PhoneNumber)</td>
+                                <td>@t.ServiceType</td>
+                                <td><span class="pill status-@QueueStore.StatusCss(t.Status)">@t.Status • @t.EstimatedWaitText</span></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="panel reveal-up delay-3">
+                <div class="panel-head"><h2>Latest Alerts</h2><a asp-action="Notifications">Open</a></div>
+                @if (!Model.RecentNotifications.Any())
+                {
+                    <p class="muted empty-state">No alerts yet.</p>
+                }
+                @foreach (var s in Model.RecentNotifications)
+                {
+                    <div class="log-item">
+                        <strong>@s.TicketNumber <span class="pill">@s.Status</span></strong>
+                        <span>@QueueStore.MaskPhone(s.PhoneNumber) • @s.CreatedAt.ToString("g")</span>
+                        <p>@s.Message</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>

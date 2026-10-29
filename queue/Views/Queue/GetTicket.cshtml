@@ -1,0 +1,65 @@
+@model TicketRequestViewModel
+@{
+    ViewData["Title"] = "Get Ticket";
+    var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
+}
+<section class="content-shell narrow animated-bg-soft">
+    <div class="section-head reveal-up">
+        <div>
+            <p class="eyebrow">Customer Queue</p>
+            <h1>Get a Queue Ticket</h1>
+            <p class="muted">Select your transaction and receive an estimated waiting time.</p>
+        </div>
+        <div class="actions">
+            <a class="btn btn-soft" asp-controller="Queue" asp-action="Notifications">Notifications</a>
+            <a class="btn btn-soft" asp-controller="Queue" asp-action="MyTicket">Track Ticket</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+    {
+        <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+
+    <div class="ticket-entry-grid">
+        <form asp-action="GetTicket" method="post" class="panel form-grid reveal-up">
+            @Html.AntiForgeryToken()
+            <label>Customer Name
+                <input asp-for="CustomerName" placeholder="Full name" autocomplete="name" readonly />
+            </label>
+            <label>Phone Number
+                <input asp-for="PhoneNumber" placeholder="09XXXXXXXXX" inputmode="numeric" maxlength="11" pattern="09[0-9]{9}" autocomplete="tel" required />
+            </label>
+            <label>Service Type
+                <select asp-for="ServiceType" required>
+                    <option>General Inquiry</option>
+                    <option>Payment</option>
+                    <option>Registration</option>
+                    <option>Document Request</option>
+                    <option>Appointment</option>
+                    <option>Customer Service</option>
+                </select>
+            </label>
+            <label>Priority Type
+                <select asp-for="PriorityType" required>
+                    <option>Regular</option>
+                    <option>Priority</option>
+                </select>
+            </label>
+            <button class="btn btn-animated span-2" type="submit">Generate Ticket</button>
+        </form>
+
+        <aside class="panel queue-preview-card reveal-up delay-1">
+            <img class="panel-logo" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+            <p class="eyebrow">Today</p>
+            <h2>@(settings.EnableAiRecommendations ? "Best time enabled" : "Queue estimate enabled")</h2>
+            <div class="preview-metric"><span>Default service</span><strong>@settings.DefaultServiceMinutes min</strong></div>
+            <div class="preview-metric"><span>Prediction buffer</span><strong>@settings.PredictionBufferMinutes min</strong></div>
+            <div class="preview-metric"><span>Business hours</span><strong>@settings.BusinessStartHour:00 - @settings.BusinessEndHour:00</strong></div>
+        </aside>
+    </div>
+</section>

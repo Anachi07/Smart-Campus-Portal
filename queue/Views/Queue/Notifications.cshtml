@@ -1,0 +1,39 @@
+@model List<AccountNotification>
+@{
+    ViewData["Title"] = "Notifications";
+}
+<section class="content-shell narrow animated-bg-soft">
+    <div class="section-head compact reveal-up">
+        <div>
+            <p class="eyebrow">Notifications</p>
+            <h1>My Alerts</h1>
+            <p class="muted">Ticket updates and queue reminders appear here.</p>
+        </div>
+        <a class="btn btn-soft" asp-controller="Queue" asp-action="MyTicket">Track Ticket</a>
+    </div>
+
+    <div class="notification-list">
+        @foreach (var n in Model)
+        {
+            <article class="notification-card reveal-up @(n.IsRead ? "read" : "unread")">
+                <div class="notification-icon">!</div>
+                <div>
+                    <div class="notification-title-row">
+                        <strong>@n.Title</strong>
+                        <span class="pill">@(n.IsRead ? "Read" : "New")</span>
+                    </div>
+                    <p>@n.Message</p>
+                    <small>@(string.IsNullOrWhiteSpace(n.TicketNumber) ? "Account" : n.TicketNumber) • @n.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</small>
+                </div>
+            </article>
+        }
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="panel empty-state reveal-up">
+            <h2>No notifications yet</h2>
+            <p class="muted">Your queue updates will appear here.</p>
+        </div>
+    }
+</section>

@@ -1,0 +1,138 @@
+@model AppSettings
+@{
+    ViewData["Title"] = "Settings";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Settings</p>
+                <h1>System Settings</h1>
+                <p class="muted">Adjust branding, waiting time, counters, and alert rules.</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+        {
+            <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+        }
+
+        <form asp-action="Settings" method="post" class="settings-grid">
+            @Html.AntiForgeryToken()
+
+            <section class="panel reveal-up">
+                <div class="panel-head"><h2>Branding</h2><span>Display</span></div>
+                <div class="form-stack">
+                    <label>System Name
+                        <input asp-for="EstablishmentName" placeholder="SmartQueueSystemGUI" />
+                    </label>
+                    <label>Accent Theme
+                        <select asp-for="AccentTheme">
+                            <option>Blue</option>
+                            <option>Emerald</option>
+                            <option>Violet</option>
+                            <option>Slate</option>
+                        </select>
+                    </label>
+                </div>
+            </section>
+
+            <section class="panel reveal-up delay-1">
+                <div class="panel-head"><h2>Waiting Time</h2><span>AI assisted</span></div>
+                <div class="toggle-list">
+                    <label class="toggle-row">
+                        <input asp-for="EnableAiRecommendations" type="checkbox" />
+                        <span><strong>Best time recommendation</strong><small>Show low-traffic visit time and adaptive estimates.</small></span>
+                    </label>
+                </div>
+                <div class="form-grid compact-form">
+                    <label>Prediction Buffer
+                        <input asp-for="PredictionBufferMinutes" type="number" min="0" max="30" />
+                    </label>
+                    <label>Default Service Time
+                        <input asp-for="DefaultServiceMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Priority Boost
+                        <input asp-for="PriorityBoostMinutes" type="number" min="0" max="60" />
+                    </label>
+                    <label>Low Traffic Limit
+                        <input asp-for="LowTrafficThreshold" type="number" min="0" max="1000" />
+                    </label>
+                    <label>Opening Hour
+                        <input asp-for="BusinessStartHour" type="number" min="0" max="23" />
+                    </label>
+                    <label>Closing Hour
+                        <input asp-for="BusinessEndHour" type="number" min="1" max="24" />
+                    </label>
+                </div>
+            </section>
+
+            <section class="panel reveal-up delay-1">
+                <div class="panel-head"><h2>Transaction Time</h2><span>Minutes</span></div>
+                <div class="form-grid compact-form">
+                    <label>General Inquiry
+                        <input asp-for="GeneralInquiryMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Payment
+                        <input asp-for="PaymentMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Registration
+                        <input asp-for="RegistrationMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Document Request
+                        <input asp-for="DocumentRequestMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Appointment
+                        <input asp-for="AppointmentMinutes" type="number" min="1" max="120" />
+                    </label>
+                    <label>Customer Service
+                        <input asp-for="CustomerServiceMinutes" type="number" min="1" max="120" />
+                    </label>
+                </div>
+            </section>
+
+            <section class="panel reveal-up delay-2">
+                <div class="panel-head"><h2>Customer Alerts</h2><span>Notifications</span></div>
+                <div class="toggle-list">
+                    <label class="toggle-row"><input asp-for="EnableAccountNotifications" type="checkbox" /><span><strong>Account notifications</strong><small>Show alerts inside the customer account.</small></span></label>
+                    <label class="toggle-row"><input asp-for="EnablePhoneNotifications" type="checkbox" /><span><strong>Phone notification log</strong><small>Record phone alerts for the registered number.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyOnTicketCreated" type="checkbox" /><span><strong>Ticket created</strong><small>Send confirmation after ticket generation.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyOnAlmostNext" type="checkbox" /><span><strong>Almost next</strong><small>Alert the next waiting customer.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyOnNowServing" type="checkbox" /><span><strong>Now serving</strong><small>Alert customer to proceed to the counter.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyOnSkipped" type="checkbox" /><span><strong>Skipped</strong><small>Alert customer when ticket is skipped.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyOnCompleted" type="checkbox" /><span><strong>Completed</strong><small>Send completion message after service.</small></span></label>
+                </div>
+                <label class="setting-small">Almost-next position
+                    <input asp-for="AlmostNextPosition" type="number" min="1" max="5" />
+                </label>
+            </section>
+
+            <section class="panel reveal-up delay-3">
+                <div class="panel-head"><h2>Staff Alerts</h2><span>Admin/Staff</span></div>
+                <div class="toggle-list">
+                    <label class="toggle-row"><input asp-for="EnableCsNotifications" type="checkbox" /><span><strong>Enable staff alerts</strong><small>Send internal alerts to Admin and Staff.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyCsOnTicketCreated" type="checkbox" /><span><strong>New ticket alert</strong><small>Notify staff when a customer creates a ticket.</small></span></label>
+                    <label class="toggle-row"><input asp-for="NotifyCsOnSkipped" type="checkbox" /><span><strong>Skipped ticket alert</strong><small>Notify staff when a ticket is skipped.</small></span></label>
+                </div>
+            </section>
+
+            <section class="panel reveal-up delay-3">
+                <div class="panel-head"><h2>Phone Gateway</h2><span>Optional</span></div>
+                <div class="form-stack">
+                    <label>Provider Name
+                        <input asp-for="SmsProviderName" placeholder="Phone Gateway" />
+                    </label>
+                    <label>API Key
+                        <input asp-for="SmsApiKey" type="password" placeholder="Add provider API key" autocomplete="off" />
+                    </label>
+                </div>
+            </section>
+
+            <div class="settings-actions">
+                <button class="btn btn-animated" type="submit">Save Settings</button>
+                <a class="btn btn-soft" asp-controller="Admin" asp-action="Notifications">View Alerts</a>
+            </div>
+        </form>
+    </div>
+</section>

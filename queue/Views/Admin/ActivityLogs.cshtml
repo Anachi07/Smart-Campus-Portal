@@ -1,0 +1,33 @@
+@model List<ActivityLog>
+@{
+    ViewData["Title"] = "Activity";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Activity</p>
+                <h1>System Logs</h1>
+                <p class="muted">Recent system actions.</p>
+            </div>
+        </div>
+        <div class="panel timeline reveal-up delay-1">
+            @if (!Model.Any())
+            {
+                <p class="muted empty-state">No activity logs yet.</p>
+            }
+            @foreach (var log in Model)
+            {
+                <div class="timeline-item">
+                    <span></span>
+                    <div>
+                        <strong>@log.Action</strong>
+                        <small>@log.CreatedAt.ToString("MMM dd, yyyy hh:mm tt")</small>
+                        <p>@log.Details</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>

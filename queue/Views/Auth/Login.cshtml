@@ -1,0 +1,56 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+    var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
+}
+<section class="login-page">
+    <div class="login-hero animated-bg">
+        <a class="brand brand-light brand-icon-only hero-logo-only" asp-controller="Auth" asp-action="Login" aria-label="SmartQueueSystemGUI Home">
+            <img class="brand-logo large" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+        </a>
+
+        <div class="hero-copy reveal-up">
+            <p class="eyebrow light">AI Assisted Queue System</p>
+            <h1>Less waiting. Clearer queue flow.</h1>
+            <p>Generate tickets, track live status, receive alerts, and view the best time to visit based on queue activity.</p>
+        </div>
+
+        <div class="feature-strip reveal-up delay-1">
+            <span>QR Tickets</span>
+            <span>Live Status</span>
+            <span>Best Visit Time</span>
+            <span>Admin Dashboard</span>
+        </div>
+    </div>
+
+    <div class="login-panel reveal-up delay-2">
+        <div class="auth-card polished glass-card">
+            <img class="auth-logo auth-logo-icon-only" src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+            <h2>Welcome back</h2>
+            <p class="muted">Sign in to continue.</p>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="alert alert-error">@Model.ErrorMessage</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+            {
+                <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+            }
+
+            <form asp-action="Login" method="post" class="form-stack" autocomplete="on">
+                @Html.AntiForgeryToken()
+                <label>Username
+                    <input asp-for="Username" placeholder="Enter username" autocomplete="username" autofocus required />
+                </label>
+                <label>Password
+                    <input asp-for="Password" type="password" placeholder="Enter password" autocomplete="current-password" required />
+                </label>
+                <button class="btn btn-block btn-animated" type="submit">Login</button>
+            </form>
+
+            <div class="auth-divider"><span>New customer</span></div>
+            <a class="btn btn-block btn-soft" asp-controller="Auth" asp-action="Register">Create Customer Account</a>
+        </div>
+    </div>
+</section>

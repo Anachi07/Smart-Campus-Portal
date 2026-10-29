@@ -1,0 +1,46 @@
+@model QueueControlViewModel
+@{
+    ViewData["Title"] = "Public Display";
+    var settings = ViewBag.Settings as AppSettings ?? new AppSettings();
+    var serving = Model.NowServingTickets.OrderByDescending(t => t.CalledAt).FirstOrDefault();
+}
+<section class="display-screen">
+    <div class="display-header">
+        <div class="display-brand display-brand-icon-only">
+            <img src="~/img/smartqueue-logo-icon-only.svg" alt="SmartQueueSystemGUI logo" />
+            <h1>Queue Display</h1>
+        </div>
+        <div class="clock" id="clock"></div>
+    </div>
+
+    <div class="display-main">
+        <div class="serving-box">
+            <span>Now Serving</span>
+            <strong>@(serving?.TicketNumber ?? "---")</strong>
+            <em>@(serving?.CounterName ?? "Please wait")</em>
+            <p>@(serving?.ServiceType ?? "No active ticket")</p>
+        </div>
+        <div class="next-box">
+            <h2>Next in Queue</h2>
+            @if (!Model.WaitingTickets.Any())
+            {
+                <p class="muted-light">No waiting tickets.</p>
+            }
+            @foreach (var t in Model.WaitingTickets.Take(8))
+            {
+                <div class="next-ticket">
+                    <div>
+                        <strong>@t.TicketNumber</strong>
+                        <span>@t.ServiceType</span>
+                    </div>
+                    <em>@t.PredictedCounterName</em>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+@section Scripts {
+    <script>
+        setTimeout(function(){ window.location.reload(); }, 10000);
+    </script>
+}

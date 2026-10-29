@@ -1,0 +1,65 @@
+@model NotificationCenterViewModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Notifications</p>
+                <h1>Alert Center</h1>
+                <p class="muted">Customer alerts, phone logs, and staff messages.</p>
+            </div>
+            <a class="btn btn-soft" asp-controller="Admin" asp-action="Settings">Settings</a>
+        </div>
+
+        <div class="two-col">
+            <section class="panel reveal-up delay-1">
+                <div class="panel-head"><h2>Phone Logs</h2><span>@Model.PhoneNotifications.Count log(s)</span></div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Date</th><th>Ticket</th><th>Phone</th><th>Message</th><th>Status</th></tr></thead>
+                        <tbody>
+                        @foreach (var s in Model.PhoneNotifications)
+                        {
+                            <tr>
+                                <td>@s.CreatedAt.ToString("g")</td>
+                                <td><strong>@s.TicketNumber</strong></td>
+                                <td>@QueueStore.MaskPhone(s.PhoneNumber)</td>
+                                <td>@s.Message</td>
+                                <td><span class="pill">@s.Status</span></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                @if (!Model.PhoneNotifications.Any())
+                {
+                    <p class="muted empty-state">No phone logs yet.</p>
+                }
+            </section>
+
+            <section class="panel reveal-up delay-2">
+                <div class="panel-head"><h2>Account Alerts</h2><span>@Model.AccountNotifications.Count alert(s)</span></div>
+                <div class="notification-list compact-list">
+                    @foreach (var n in Model.AccountNotifications)
+                    {
+                        <article class="notification-card @(n.IsRead ? "read" : "unread")">
+                            <div class="notification-icon">!</div>
+                            <div>
+                                <strong>@n.Title</strong>
+                                <p>@n.Message</p>
+                                <small>@(string.IsNullOrWhiteSpace(n.TicketNumber) ? "Account" : n.TicketNumber) • @n.CreatedAt.ToString("g")</small>
+                            </div>
+                        </article>
+                    }
+                </div>
+                @if (!Model.AccountNotifications.Any())
+                {
+                    <p class="muted empty-state">No account alerts yet.</p>
+                }
+            </section>
+        </div>
+    </div>
+</section>

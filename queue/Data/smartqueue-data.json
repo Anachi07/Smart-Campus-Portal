@@ -1,0 +1,448 @@
+{
+  "Users": [
+    {
+      "Id": 1,
+      "FullName": "System Administrator",
+      "PhoneNumber": "09999999999",
+      "Username": "admin",
+      "PasswordHash": "240BE518FABD2724DDB6F04EEB1DA5967448D7E831C08C8FA822809F74C720A9",
+      "Role": "Admin",
+      "CreatedAt": "2026-05-25T01:44:16.5251933+08:00"
+    },
+    {
+      "Id": 2,
+      "FullName": "ROM ANTHONY BORJA",
+      "PhoneNumber": "09099455110",
+      "Username": "ANCHI",
+      "PasswordHash": "8D969EEF6ECAD3C29A3A629280E686CF0C3F5D5A86AFF3CA12020C923ADC6C92",
+      "Role": "Customer",
+      "CreatedAt": "2026-05-25T19:14:59.0186733+08:00"
+    }
+  ],
+  "Tickets": [
+    {
+      "Id": 1,
+      "TicketNumber": "GEN-001",
+      "CustomerName": "ROM ANTHONY BORJA",
+      "PhoneNumber": "09099455110",
+      "CustomerUserId": 2,
+      "ServiceType": "General Inquiry",
+      "PriorityType": "Regular",
+      "Status": "Skipped",
+      "CounterName": "Counter 1",
+      "CreatedAt": "2026-05-25T19:15:21.8882712+08:00",
+      "CalledAt": "2026-05-25T19:15:45.2693583+08:00",
+      "CompletedAt": null,
+      "SkippedAt": "2026-05-25T19:16:47.7457805+08:00",
+      "EstimatedWaitMinutes": 0,
+      "EstimatedWaitText": "Skipped",
+      "EstimatedServiceStartAt": "2026-05-25T19:15:45.2693583+08:00",
+      "PredictedCounterName": "Counter 1",
+      "BestVisitTime": "8:00 AM - 9:00 AM (low traffic)",
+      "AiInsight": "This ticket was skipped. Please approach staff for assistance."
+    },
+    {
+      "Id": 2,
+      "TicketNumber": "GEN-002",
+      "CustomerName": "ROM ANTHONY BORJA",
+      "PhoneNumber": "09099455110",
+      "CustomerUserId": 2,
+      "ServiceType": "General Inquiry",
+      "PriorityType": "Regular",
+      "Status": "Served",
+      "CounterName": "Counter 1",
+      "CreatedAt": "2026-05-25T19:15:53.7024426+08:00",
+      "CalledAt": "2026-05-25T19:16:30.1809244+08:00",
+      "CompletedAt": "2026-05-25T19:17:06.6590713+08:00",
+      "SkippedAt": null,
+      "EstimatedWaitMinutes": 0,
+      "EstimatedWaitText": "Completed",
+      "EstimatedServiceStartAt": "2026-05-25T19:16:30.1809244+08:00",
+      "PredictedCounterName": "Counter 1",
+      "BestVisitTime": "8:00 AM - 9:00 AM (low traffic)",
+      "AiInsight": "This ticket has already been completed."
+    },
+    {
+      "Id": 3,
+      "TicketNumber": "GEN-003",
+      "CustomerName": "ROM ANTHONY BORJA",
+      "PhoneNumber": "09099455110",
+      "CustomerUserId": 2,
+      "ServiceType": "General Inquiry",
+      "PriorityType": "Regular",
+      "Status": "Served",
+      "CounterName": "Counter 1",
+      "CreatedAt": "2026-05-25T19:16:00.2688781+08:00",
+      "CalledAt": "2026-05-25T19:17:16.7730242+08:00",
+      "CompletedAt": "2026-05-25T19:17:22.3436534+08:00",
+      "SkippedAt": null,
+      "EstimatedWaitMinutes": 0,
+      "EstimatedWaitText": "Completed",
+      "EstimatedServiceStartAt": "2026-05-25T19:17:16.7730242+08:00",
+      "PredictedCounterName": "Counter 1",
+      "BestVisitTime": "8:00 AM - 9:00 AM (low traffic)",
+      "AiInsight": "This ticket has already been completed."
+    }
+  ],
+  "Counters": [
+    {
+      "Id": 1,
+      "Name": "Counter 1",
+      "Status": "Available",
+      "StaffName": ""
+    },
+    {
+      "Id": 2,
+      "Name": "Counter 2",
+      "Status": "Available",
+      "StaffName": ""
+    },
+    {
+      "Id": 3,
+      "Name": "Counter 3",
+      "Status": "Offline",
+      "StaffName": ""
+    }
+  ],
+  "SmsNotifications": [
+    {
+      "Id": 1,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-001",
+      "Message": "Your queue ticket GEN-001 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:15:21.8970046+08:00"
+    },
+    {
+      "Id": 2,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-001",
+      "Message": "Now serving GEN-001 at Counter 1. Please proceed to the counter.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:15:45.2696153+08:00"
+    },
+    {
+      "Id": 3,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-002",
+      "Message": "Your queue ticket GEN-002 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:15:53.7025585+08:00"
+    },
+    {
+      "Id": 4,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-003",
+      "Message": "Your queue ticket GEN-003 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:16:00.2697601+08:00"
+    },
+    {
+      "Id": 5,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-002",
+      "Message": "Now serving GEN-002 at Counter 1. Please proceed to the counter.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:16:30.1809443+08:00"
+    },
+    {
+      "Id": 6,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-003",
+      "Message": "Your ticket GEN-003 is almost next. Updated estimated waiting time: 1 minute. Please stay nearby.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:16:30.1809917+08:00"
+    },
+    {
+      "Id": 7,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-001",
+      "Message": "Your ticket GEN-001 was skipped. Please approach the staff if you still need assistance.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:16:47.7458011+08:00"
+    },
+    {
+      "Id": 8,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-002",
+      "Message": "Your ticket GEN-002 has been completed. Thank you.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:17:06.6591086+08:00"
+    },
+    {
+      "Id": 9,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-003",
+      "Message": "Now serving GEN-003 at Counter 1. Please proceed to the counter.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:17:16.7730449+08:00"
+    },
+    {
+      "Id": 10,
+      "PhoneNumber": "09099455110",
+      "TicketNumber": "GEN-003",
+      "Message": "Your ticket GEN-003 has been completed. Thank you.",
+      "Status": "Logged",
+      "CreatedAt": "2026-05-25T19:17:22.3437218+08:00"
+    }
+  ],
+  "AccountNotifications": [
+    {
+      "Id": 1,
+      "UserId": 2,
+      "TicketNumber": "",
+      "Title": "Account created",
+      "Message": "Your customer account is ready. You can now generate and track queue tickets.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:14:59.0202717+08:00"
+    },
+    {
+      "Id": 2,
+      "UserId": 2,
+      "TicketNumber": "GEN-001",
+      "Title": "Ticket created",
+      "Message": "Your queue ticket GEN-001 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:15:21.8941822+08:00"
+    },
+    {
+      "Id": 3,
+      "UserId": 1,
+      "TicketNumber": "GEN-001",
+      "Title": "New customer ticket",
+      "Message": "New ticket GEN-001 for General Inquiry. Estimated wait: 1 minute. Suggested counter: Counter 1.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:15:21.8981108+08:00"
+    },
+    {
+      "Id": 4,
+      "UserId": 2,
+      "TicketNumber": "GEN-001",
+      "Title": "Now serving",
+      "Message": "Now serving GEN-001 at Counter 1. Please proceed to the counter.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:15:45.2693867+08:00"
+    },
+    {
+      "Id": 5,
+      "UserId": 2,
+      "TicketNumber": "GEN-002",
+      "Title": "Ticket created",
+      "Message": "Your queue ticket GEN-002 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:15:53.7025552+08:00"
+    },
+    {
+      "Id": 6,
+      "UserId": 1,
+      "TicketNumber": "GEN-002",
+      "Title": "New customer ticket",
+      "Message": "New ticket GEN-002 for General Inquiry. Estimated wait: 1 minute. Suggested counter: Counter 1.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:15:53.7025614+08:00"
+    },
+    {
+      "Id": 7,
+      "UserId": 2,
+      "TicketNumber": "GEN-003",
+      "Title": "Ticket created",
+      "Message": "Your queue ticket GEN-003 has been created for General Inquiry. Estimated waiting time: 1 minute. Best time to visit today: 8:00 AM - 9:00 AM (low traffic).",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:16:00.2697572+08:00"
+    },
+    {
+      "Id": 8,
+      "UserId": 1,
+      "TicketNumber": "GEN-003",
+      "Title": "New customer ticket",
+      "Message": "New ticket GEN-003 for General Inquiry. Estimated wait: 1 minute. Suggested counter: Counter 2.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:16:00.2697631+08:00"
+    },
+    {
+      "Id": 9,
+      "UserId": 2,
+      "TicketNumber": "GEN-002",
+      "Title": "Now serving",
+      "Message": "Now serving GEN-002 at Counter 1. Please proceed to the counter.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:16:30.1809397+08:00"
+    },
+    {
+      "Id": 10,
+      "UserId": 2,
+      "TicketNumber": "GEN-003",
+      "Title": "Almost next",
+      "Message": "Your ticket GEN-003 is almost next. Updated estimated waiting time: 1 minute. Please stay nearby.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:16:30.1809907+08:00"
+    },
+    {
+      "Id": 11,
+      "UserId": 2,
+      "TicketNumber": "GEN-001",
+      "Title": "Ticket skipped",
+      "Message": "Your ticket GEN-001 was skipped. Please approach the staff if you still need assistance.",
+      "IsRead": true,
+      "CreatedAt": "2026-05-25T19:16:47.7457969+08:00"
+    },
+    {
+      "Id": 12,
+      "UserId": 1,
+      "TicketNumber": "GEN-001",
+      "Title": "Skipped ticket alert",
+      "Message": "Ticket GEN-001 was skipped at the counter. CS may assist the customer if needed.",
+      "IsRead": false,
+      "CreatedAt": "2026-05-25T19:16:47.7458061+08:00"
+    },
+    {
+      "Id": 13,
+      "UserId": 2,
+      "TicketNumber": "GEN-002",
+      "Title": "Ticket completed",
+      "Message": "Your ticket GEN-002 has been completed. Thank you.",
+      "IsRead": false,
+      "CreatedAt": "2026-05-25T19:17:06.6591061+08:00"
+    },
+    {
+      "Id": 14,
+      "UserId": 2,
+      "TicketNumber": "GEN-003",
+      "Title": "Now serving",
+      "Message": "Now serving GEN-003 at Counter 1. Please proceed to the counter.",
+      "IsRead": false,
+      "CreatedAt": "2026-05-25T19:17:16.7730425+08:00"
+    },
+    {
+      "Id": 15,
+      "UserId": 2,
+      "TicketNumber": "GEN-003",
+      "Title": "Ticket completed",
+      "Message": "Your ticket GEN-003 has been completed. Thank you.",
+      "IsRead": false,
+      "CreatedAt": "2026-05-25T19:17:22.3437174+08:00"
+    }
+  ],
+  "ActivityLogs": [
+    {
+      "Id": 1,
+      "Action": "Default administrator ready",
+      "Details": "Built-in administrator account is available for system owner login. Credentials are not displayed in the website interface.",
+      "CreatedAt": "2026-05-25T01:44:16.5277843+08:00"
+    },
+    {
+      "Id": 2,
+      "Action": "Customer registered",
+      "Details": "ROM ANTHONY BORJA registered with phone 0909***5110.",
+      "CreatedAt": "2026-05-25T19:14:59.0193825+08:00"
+    },
+    {
+      "Id": 3,
+      "Action": "Ticket created",
+      "Details": "GEN-001 created for ROM ANTHONY BORJA, service: General Inquiry, phone: 0909***5110, estimated wait: 1 minute.",
+      "CreatedAt": "2026-05-25T19:15:21.8932313+08:00"
+    },
+    {
+      "Id": 4,
+      "Action": "CS notification",
+      "Details": "CS alert generated for GEN-001: New customer ticket.",
+      "CreatedAt": "2026-05-25T19:15:21.8981197+08:00"
+    },
+    {
+      "Id": 5,
+      "Action": "Now serving",
+      "Details": "GEN-001 is now serving at Counter 1.",
+      "CreatedAt": "2026-05-25T19:15:45.2693704+08:00"
+    },
+    {
+      "Id": 6,
+      "Action": "Ticket created",
+      "Details": "GEN-002 created for ROM ANTHONY BORJA, service: General Inquiry, phone: 0909***5110, estimated wait: 1 minute.",
+      "CreatedAt": "2026-05-25T19:15:53.702551+08:00"
+    },
+    {
+      "Id": 7,
+      "Action": "CS notification",
+      "Details": "CS alert generated for GEN-002: New customer ticket.",
+      "CreatedAt": "2026-05-25T19:15:53.7025633+08:00"
+    },
+    {
+      "Id": 8,
+      "Action": "Ticket created",
+      "Details": "GEN-003 created for ROM ANTHONY BORJA, service: General Inquiry, phone: 0909***5110, estimated wait: 1 minute.",
+      "CreatedAt": "2026-05-25T19:16:00.2697504+08:00"
+    },
+    {
+      "Id": 9,
+      "Action": "CS notification",
+      "Details": "CS alert generated for GEN-003: New customer ticket.",
+      "CreatedAt": "2026-05-25T19:16:00.2697655+08:00"
+    },
+    {
+      "Id": 10,
+      "Action": "Now serving",
+      "Details": "GEN-002 is now serving at Counter 1.",
+      "CreatedAt": "2026-05-25T19:16:30.1809322+08:00"
+    },
+    {
+      "Id": 11,
+      "Action": "Ticket skipped",
+      "Details": "GEN-001 was skipped.",
+      "CreatedAt": "2026-05-25T19:16:47.7457907+08:00"
+    },
+    {
+      "Id": 12,
+      "Action": "CS notification",
+      "Details": "CS alert generated for GEN-001: Skipped ticket alert.",
+      "CreatedAt": "2026-05-25T19:16:47.7458111+08:00"
+    },
+    {
+      "Id": 13,
+      "Action": "Ticket completed",
+      "Details": "GEN-002 has been served.",
+      "CreatedAt": "2026-05-25T19:17:06.6590811+08:00"
+    },
+    {
+      "Id": 14,
+      "Action": "Now serving",
+      "Details": "GEN-003 is now serving at Counter 1.",
+      "CreatedAt": "2026-05-25T19:17:16.7730364+08:00"
+    },
+    {
+      "Id": 15,
+      "Action": "Ticket completed",
+      "Details": "GEN-003 has been served.",
+      "CreatedAt": "2026-05-25T19:17:22.3436593+08:00"
+    }
+  ],
+  "Settings": {
+    "EstablishmentName": "SmartQueueSystemGUI",
+    "SmsProviderName": "Phone Gateway",
+    "SmsApiKey": "",
+    "EnablePhoneNotifications": true,
+    "EnableAccountNotifications": true,
+    "NotifyOnTicketCreated": true,
+    "NotifyOnAlmostNext": true,
+    "NotifyOnNowServing": true,
+    "NotifyOnSkipped": true,
+    "NotifyOnCompleted": true,
+    "EnableCsNotifications": true,
+    "NotifyCsOnTicketCreated": true,
+    "NotifyCsOnSkipped": true,
+    "AlmostNextPosition": 1,
+    "AccentTheme": "Blue",
+    "EnableAiRecommendations": true,
+    "PredictionBufferMinutes": 1,
+    "DefaultServiceMinutes": 5,
+    "GeneralInquiryMinutes": 3,
+    "PaymentMinutes": 4,
+    "RegistrationMinutes": 7,
+    "DocumentRequestMinutes": 6,
+    "AppointmentMinutes": 8,
+    "CustomerServiceMinutes": 6,
+    "PriorityBoostMinutes": 2,
+    "BusinessStartHour": 8,
+    "BusinessEndHour": 17,
+    "LowTrafficThreshold": 3
+  }
+}

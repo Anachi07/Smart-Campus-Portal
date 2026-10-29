@@ -1,0 +1,60 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = "Reports";
+    var maxService = Model.ByService.Any() ? Model.ByService.Values.Max() : 1;
+    var maxStatus = Model.ByStatus.Any() ? Model.ByStatus.Values.Max() : 1;
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Reports</p>
+                <h1>Queue Performance</h1>
+                <p class="muted">Daily queue records and waiting-time summary.</p>
+            </div>
+            <button class="btn" onclick="window.print()">Print Report</button>
+        </div>
+        <div class="stat-grid reveal-up delay-1">
+            <div class="stat-card"><span>Total</span><strong>@Model.TotalTickets</strong></div>
+            <div class="stat-card"><span>Waiting</span><strong>@Model.Waiting</strong></div>
+            <div class="stat-card"><span>Serving</span><strong>@Model.NowServing</strong></div>
+            <div class="stat-card"><span>Served</span><strong>@Model.Served</strong></div>
+            <div class="stat-card"><span>Skipped</span><strong>@Model.Skipped</strong></div>
+            <div class="stat-card"><span>Avg. Wait</span><strong>@Model.AverageWaitingMinutes</strong><small>minutes</small></div>
+            <div class="stat-card"><span>Best Time</span><strong class="stat-text">@Model.BestVisitTime</strong><small>@Model.QueueLoadLabel</small></div>
+        </div>
+        <div class="two-col">
+            <div class="panel reveal-up delay-2">
+                <h2>Tickets by Service</h2>
+                @foreach (var item in Model.ByService.OrderByDescending(x => x.Value))
+                {
+                    var width = maxService == 0 ? 0 : Math.Round((double)item.Value / maxService * 100);
+                    <div class="bar-row"><span>@item.Key</span><div><i style="width:@width%"></i></div><strong>@item.Value</strong></div>
+                }
+            </div>
+            <div class="panel reveal-up delay-3">
+                <h2>Tickets by Status</h2>
+                @foreach (var item in Model.ByStatus.OrderByDescending(x => x.Value))
+                {
+                    var width = maxStatus == 0 ? 0 : Math.Round((double)item.Value / maxStatus * 100);
+                    <div class="bar-row"><span>@item.Key</span><div><i style="width:@width%"></i></div><strong>@item.Value</strong></div>
+                }
+            </div>
+        </div>
+        <div class="panel reveal-up delay-3">
+            <div class="panel-head"><h2>Ticket Records</h2><span>@Model.Tickets.Count records</span></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Ticket</th><th>Name</th><th>Phone</th><th>Service</th><th>Priority</th><th>Status / ETA</th><th>Counter</th><th>Created</th></tr></thead>
+                    <tbody>
+                    @foreach (var t in Model.Tickets)
+                    {
+                        <tr><td><strong>@t.TicketNumber</strong></td><td>@t.CustomerName</td><td>@QueueStore.MaskPhone(t.PhoneNumber)</td><td>@t.ServiceType</td><td>@t.PriorityType</td><td><span class="pill status-@QueueStore.StatusCss(t.Status)">@t.Status • @t.EstimatedWaitText</span></td><td>@t.PredictedCounterName</td><td>@t.CreatedAt.ToString("g")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>

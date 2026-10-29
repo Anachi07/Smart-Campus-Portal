@@ -1,0 +1,53 @@
+@model List<Counter>
+@{
+    ViewData["Title"] = "Counters";
+}
+<section class="admin-layout">
+    @await Html.PartialAsync("_AdminSidebar")
+    <div class="admin-main">
+        <div class="section-head reveal-up">
+            <div>
+                <p class="eyebrow">Counters</p>
+                <h1>Service Counters</h1>
+                <p class="muted">Add counters and update availability.</p>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(ViewBag.SuccessMessage as string))
+        {
+            <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+        }
+
+        <form asp-action="AddCounter" method="post" class="panel form-grid compact-form reveal-up delay-1">
+            @Html.AntiForgeryToken()
+            <label>Counter Name<input name="name" placeholder="Counter 4" required /></label>
+            <label>Staff Name<input name="staffName" placeholder="Staff Name" /></label>
+            <button class="btn span-2" type="submit">Add Counter</button>
+        </form>
+
+        <div class="counter-grid reveal-up delay-2">
+            @foreach (var c in Model)
+            {
+                <article class="counter-card">
+                    <div>
+                        <span class="counter-dot @QueueStore.StatusCss(c.Status)"></span>
+                        <h2>@c.Name</h2>
+                        <p>@(string.IsNullOrWhiteSpace(c.StaffName) ? "No assigned staff" : c.StaffName)</p>
+                    </div>
+                    <span class="pill status-@QueueStore.StatusCss(c.Status)">@c.Status</span>
+                    <form asp-action="UpdateCounter" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@c.Id" />
+                        <select name="status">
+                            <option value="Available" selected="@(c.Status == "Available" ? "selected" : null)">Available</option>
+                            <option value="Serving" selected="@(c.Status == "Serving" ? "selected" : null)">Serving</option>
+                            <option value="On Break" selected="@(c.Status == "On Break" ? "selected" : null)">On Break</option>
+                            <option value="Offline" selected="@(c.Status == "Offline" ? "selected" : null)">Offline</option>
+                        </select>
+                        <button class="btn btn-small">Update</button>
+                    </form>
+                </article>
+            }
+        </div>
+    </div>
+</section>
