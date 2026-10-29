@@ -1,4 +1,5 @@
 using SmartQueueSystemGUI.Services;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,11 +11,13 @@ builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);
     options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = Environment.GetEnvironmentVariable("CAMPUS_PUBLIC_HTTPS") == "1" ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
     options.Cookie.IsEssential = true;
     options.Cookie.Name = ".SmartQueueSystemGUI.Session";
 });
 
 var app = builder.Build();
+app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedProto });
 
 if (!app.Environment.IsDevelopment())
 {
@@ -28,6 +31,8 @@ app.UseRouting();
 app.UseSession();
 app.UseMiddleware<CampusSession>();
 app.UseAuthorization();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.MapControllerRoute(
     name: "default",

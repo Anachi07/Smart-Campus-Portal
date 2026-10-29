@@ -61,3 +61,7 @@ This uses the sample admin and student accounts and **creates demo queue tickets
 ## Development scope
 
 This is a locally runnable integration using a PHP development server and a Node gateway. Before public deployment, configure HTTPS and production service hosting, replace demo credentials, and review the source apps' authorization, registration policies, data handling, and backup behavior. Existing AI attendance, predictive analytics, and SMS features retain the original implementations; this merge does not add a trained AI model or a live SMS provider.
+
+## Live demo deployment
+
+See [DEPLOY.md](DEPLOY.md) for the Docker/Render setup. [Deploy with Render](https://render.com/deploy?repo=https://github.com/Anachi07/Smart-Campus-Portal). A Render login and GitHub repository connection are required. The free demo can reset data on restart; it is for exploration using sample accounts.

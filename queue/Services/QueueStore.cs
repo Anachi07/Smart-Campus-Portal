@@ -13,7 +13,7 @@ public class QueueStore
 
     public QueueStore(IWebHostEnvironment env)
     {
-        var dataDir = Path.Combine(env.ContentRootPath, "Data");
+        var dataDir = Environment.GetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR") ?? Path.Combine(env.ContentRootPath, "Data");
         Directory.CreateDirectory(dataDir);
         _filePath = Path.Combine(dataDir, "smartqueue-data.json");
         _data = LoadOrSeed();

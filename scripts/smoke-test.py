@@ -1,6 +1,6 @@
 """Integration checks against a running local portal; run on disposable demo data."""
-import http.cookiejar, urllib.request, urllib.parse, re, html, json
-BASE='http://127.0.0.1:8080'
+import os, http.cookiejar, urllib.request, urllib.parse, re, html, json
+BASE=os.environ.get('CAMPUS_TEST_URL', 'http://127.0.0.1:8080')
 def client():
  return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 def get(c,path):

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: smart-campus-portal-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: CAMPUS_PUBLIC_HTTPS
+        value: "1"

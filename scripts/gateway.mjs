@@ -6,6 +6,7 @@ const server = http.createServer((req, res) => {
   const sims = path.startsWith('/sims/') || path === '/portal';
   if (path === '/sims') { res.writeHead(302, {Location: '/sims/'}); res.end(); return; }
   const headers = {...req.headers};
+  headers['x-forwarded-proto'] = process.env.CAMPUS_PUBLIC_HTTPS === '1' ? 'https' : 'http';
   delete headers['x-campus-secret']; // Never trust an external caller's internal credential.
   const upstream = http.request({hostname: '127.0.0.1', port: sims ? 8082 : 8081,
     method: req.method, path: path === '/portal' ? '/portal.php' : sims ? req.url.slice(5) : req.url,
@@ -17,4 +18,4 @@ const server = http.createServer((req, res) => {
   req.on('aborted', () => upstream.destroy());
   req.pipe(upstream);
 });
-server.listen(port, '127.0.0.1', () => console.log(`Campus gateway listening on port ${port}`));
+server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`Campus gateway listening on port ${port}`));

@@ -6,12 +6,13 @@ if (session_status() === PHP_SESSION_NONE) {
         'lifetime' => 0,
         'path' => '/',
         'httponly' => true,
+        'secure' => getenv('CAMPUS_PUBLIC_HTTPS') === '1',
         'samesite' => 'Lax'
     ]);
     session_start();
 }
 
-ini_set('display_errors', '1');
+ini_set('display_errors', getenv('ASPNETCORE_ENVIRONMENT') === 'Production' ? '0' : '1');
 error_reporting(E_ALL);
 
 function db(): PDO {

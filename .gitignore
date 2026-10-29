@@ -3,3 +3,5 @@
 **/.vs/
 .runtime/
 *.user
+
+**/__pycache__/
