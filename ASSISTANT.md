@@ -8,7 +8,11 @@ Administrators open **School administration → Assistant knowledge**. Add a que
 
 ## Optional generative AI
 
-A school administrator must create a provider account and credential. In the existing Render service's **Environment** settings, configure these server-side values, then redeploy:
+The deployment Blueprint selects Google AI Studio (Gemini), with `gemini-2.5-flash` as its initial configurable model and a per-process daily cap of 100 calls. Model availability must be confirmed in the school's Google AI Studio project; change the model setting if that account no longer supports this ID. Live provider access is not verified by the Blueprint.
+
+For the existing service, open Render **Environment** and ensure `CAMPUS_AI_PROVIDER=gemini` and `CAMPUS_AI_MODEL=gemini-2.5-flash` are present (or use a supported model from AI Studio). Add a newly generated Google AI Studio key as `CAMPUS_AI_API_KEY`, then save and redeploy. Existing Blueprints may require **Manual sync** for the non-secret defaults. The key is deliberately absent from the repository and Blueprint: enter it only in secure hosting settings. Revoke any key previously shared in a chat.
+
+To use another supported provider or override the defaults, configure:
 
 | Variable | Value |
 | --- | --- |

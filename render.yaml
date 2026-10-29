@@ -10,3 +10,9 @@ services:
         value: demo
       - key: CAMPUS_PUBLIC_HTTPS
         value: "1"
+      - key: CAMPUS_AI_PROVIDER
+        value: gemini
+      - key: CAMPUS_AI_MODEL
+        value: gemini-2.5-flash
+      - key: CAMPUS_AI_DAILY_LIMIT
+        value: "100"
