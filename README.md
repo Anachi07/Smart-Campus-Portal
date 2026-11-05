@@ -2,6 +2,8 @@
 
 A connected **SmartSIMS + SmartQueue web demo** with one account, role-based access, and a responsive interface. The current scope is a **free demo using sample data**; ICAS Philippines branding uses the supplied logo reference and a green, white, and yellow interface.
 
+The public homepage presents **Infotech College of Arts and Sciences (ICAS), Sucat branch**, with HRS, IT, BSHM and BSIT. School-approved public information can be updated through School settings; see [homepage content guidance](SCHOOL_HOMEPAGE.md).
+
 ## What works
 
 - Public campus home, shared login, mobile navigation, password changes, and account notifications.
