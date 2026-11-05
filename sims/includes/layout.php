@@ -77,6 +77,7 @@ function render_sidebar(string $role): void {
 <?php $link(['dashboard.php','fa-chart-simple','Academic dashboard']);
 if(in_array($role,['Student','Teacher','Admin','Super Admin'],true))$link(['modules/shared/facilities.php','fa-calendar-check','Facility reservations']);
 if($role==='Super Admin')$link(['modules/admin/facilities.php','fa-building','Manage facilities']);
+$link(['modules/shared/surveys.php','fa-square-poll-vertical','School surveys']);
 $link(['modules/shared/lost_found.php','fa-magnifying-glass','Lost and found']);
 $link(['modules/shared/enrollment.php','fa-list-check','Enrollment checklist']);
 if($role==='Super Admin')$link(['modules/admin/enrollment_requirements.php','fa-clipboard-list','Enrollment requirements']);

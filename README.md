@@ -13,6 +13,7 @@ A connected **SmartSIMS + SmartQueue web demo** with one account, role-based acc
 - Queue ticket creation, own-ticket tracking and QR links, counters, call/complete/skip/return, estimates, reports, and account notifications. Repeat submissions return an existing active ticket for the same service. New ticket numbers include the issue date; unresolved tickets from earlier dates expire, and tracking refreshes while the page is visible.
 - Validated paired backup/restore of the academic database and queue JSON, including safety copies and revocation of prior sessions after restore.
 - Atomic queue writes, corruption detection, CSRF checks, login throttling, private-file protection, and security headers.
+- [School feedback surveys](SURVEYS.md): targeted audiences, rating/choice/text questions, one submission per account, anonymous or identified privacy, and staff-only results.
 
 ## Run locally
 

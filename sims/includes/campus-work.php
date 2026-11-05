@@ -20,6 +20,8 @@ function init_campus_work(PDO $pdo): void {
     init_school_courses($pdo);
     require_once __DIR__.'/facilities.php';
     init_facilities($pdo);
+    require_once __DIR__.'/surveys.php';
+    init_surveys($pdo);
     require_once __DIR__.'/lost-found.php';
     init_lost_found($pdo);
     $columns=array_column($pdo->query('PRAGMA table_info(announcements)')->fetchAll(),'name');
