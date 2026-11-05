@@ -25,13 +25,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 const chartColors=['#176b39','#edc647','#748fa3','#d66d62'];
 function makeLineChart(id,labels,data,label='Value'){
  if(!window.Chart||!document.getElementById(id))return;
- new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:[{label,data,borderColor:'#176b39',backgroundColor:'#176b3912',pointBackgroundColor:'#176b39',pointRadius:3,borderWidth:2,tension:.3,fill:true,spanGaps:false}]},options:{responsive:true,animation:!matchMedia('(prefers-reduced-motion: reduce)').matches,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'#edf2f5'}},x:{grid:{display:false}}}}});
+ new Chart(document.getElementById(id),{type:'line',data:{labels,datasets:[{label,data,borderColor:'#176b39',backgroundColor:'#176b3912',pointBackgroundColor:'#176b39',pointRadius:3,borderWidth:2,tension:.3,fill:true,spanGaps:false}]},options:{responsive:true,animation:campusChartAnimation(),plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'#edf2f5'}},x:{grid:{display:false}}}}});
 }
 function makeDoughnut(id,labels,data){
  if(!window.Chart||!document.getElementById(id))return;
- new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:['#d66d62','#edc647','#176b39'],borderWidth:0,spacing:4}]},options:{responsive:true,cutout:'76%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:18,font:{size:11}}}}}});
+ new Chart(document.getElementById(id),{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:['#d66d62','#edc647','#176b39'],borderWidth:0,spacing:4}]},options:{responsive:true,animation:campusChartAnimation(),cutout:'76%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:18,font:{size:11}}}}}});
 }
 function makeBar(id,labels,data,label='Value'){
  if(!window.Chart||!document.getElementById(id))return;
- new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:chartColors,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+ new Chart(document.getElementById(id),{type:'bar',data:{labels,datasets:[{label,data,backgroundColor:chartColors,borderRadius:5}]},options:{responsive:true,animation:campusChartAnimation(),plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
 }
+
+function campusChartAnimation(){return document.documentElement.dataset.campusMotion!=='reduce'&&!matchMedia('(prefers-reduced-motion: reduce)').matches;}

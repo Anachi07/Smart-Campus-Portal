@@ -42,7 +42,7 @@ const assert=require('node:assert/strict');
    await page.evaluate(()=>window.dispatchEvent(new Event('campus:notification')));
    await page.waitForFunction(async()=>{const worker=await navigator.serviceWorker.ready;const notices=await worker.getNotifications();return notices.some(n=>n.title==='ICAS Campus update'&&n.body==='You have a new campus service update. Open the portal to view it.');});
    const keys=await page.evaluate(async()=>{const names=await caches.keys();const result=[];for(const n of names){const c=await caches.open(n);for(const req of await c.keys())result.push(new URL(req.url).pathname);}return result.sort();});
-   assert.deepEqual(keys,['/offline.html','/pwa/icon.svg']);
+   assert.deepEqual(keys,['/accessibility/preferences.css','/accessibility/preferences.js','/offline.html','/pwa/icon.svg']);
    await context.setOffline(true);await page.goto(base+'/sims/dashboard.php');
    await page.getByRole('heading',{name:"You're offline"}).waitFor();
    assert.equal(await page.locator('.sidebar').count(),0,'No cached private dashboard');

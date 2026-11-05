@@ -21,6 +21,7 @@ function render_header(string $title='Dashboard'): void {
     <link rel="stylesheet" href="/sims/assets/css/campus-work.css"><script src="/sims/assets/js/campus-work.js" defer></script>
     <meta name="theme-color" content="#104b2b">
 <link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa/pwa.css"><script src="/pwa/pwa.js" defer></script>
+<link rel="stylesheet" href="/accessibility/preferences.css"><script src="/accessibility/preferences.js"></script>
 </head>
 <body data-notification-summary-url="<?= $user ? (in_array($role,['Admin','Super Admin'],true)?'/Admin/NotificationSummary':'/Queue/NotificationSummary') : '' ?>" data-campus-notification-poll="true">
 <a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell"><button class="sidebar-overlay" id="sidebarOverlay" aria-label="Close navigation" hidden></button>

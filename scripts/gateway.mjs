@@ -8,7 +8,9 @@ const publicFiles = new Map([
   ['/pwa/icon-192.png', 'image/png'],
   ['/pwa/icon-512.png', 'image/png'],
   ['/pwa/pwa.js', 'application/javascript'],
-  ['/pwa/pwa.css', 'text/css']
+  ['/pwa/pwa.css', 'text/css'],
+  ['/accessibility/preferences.js', 'application/javascript'],
+  ['/accessibility/preferences.css', 'text/css']
 ].map(([url, type]) => [url, {type, body:readFileSync(new URL('../public' + url, import.meta.url))}]));
 const port = Number(process.env.PORT || 8080);
 const maxBody = 12 * 1024 * 1024;

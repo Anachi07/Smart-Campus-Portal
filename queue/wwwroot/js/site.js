@@ -103,7 +103,7 @@ function setupNavToggle(){
 function setupButtonRipple(){
   document.addEventListener('click', function(e){
     const btn = e.target.closest('.btn');
-    if(!btn) return;
+    if(!btn || document.documentElement.dataset.campusMotion === 'reduce' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     btn.animate([{transform:'scale(.98)'},{transform:'scale(1)'}], {duration:160, easing:'ease-out'});
   });
 }

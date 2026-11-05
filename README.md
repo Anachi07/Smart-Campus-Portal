@@ -160,3 +160,11 @@ listings. Ownership claims, evidence, and review histories are private. Staff ve
 claims and confirm an in-person handover before release; one verified claim can hold
 an item at a time. See [LOST_FOUND.md](LOST_FOUND.md) for moderation, privacy,
 collection, backup behavior, and checks.
+
+## Accessibility preferences
+
+The shared Accessibility control offers Normal/Large/Extra-large text, device or
+high contrast, and device or reduced motion. Preferences stay in the browser,
+synchronize across tabs, and work on the offline shell without caching private
+records. Keyboard controls, focus outlines, responsive tables, and reset are included.
+See [ACCESSIBILITY.md](ACCESSIBILITY.md) for behavior and verification.

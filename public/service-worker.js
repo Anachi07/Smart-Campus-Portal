@@ -1,6 +1,6 @@
-const CACHE = 'icas-public-v1';
+const CACHE = 'icas-public-v2';
 // Deliberately cache only this public offline shell. Never store authenticated pages or API responses.
-const PUBLIC = ['/offline.html', '/pwa/icon.svg'];
+const PUBLIC = ['/offline.html', '/pwa/icon.svg', '/accessibility/preferences.js', '/accessibility/preferences.css'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PUBLIC)).then(() => self.skipWaiting()));
 });
