@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "ICAS Philippines Campus Portal",
-  "short_name": "ICAS Campus",
-  "description": "Your academics and campus services, together.",
+  "name": "ICAS SUCAT",
+  "short_name": "ICAS SUCAT",
+  "description": "Infotech College of Arts and Sciences (ICAS), Sucat branch. School information and campus services.",
   "start_url": "/portal",
   "scope": "/",
   "display": "standalone",
@@ -11,13 +11,13 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/pwa/icon-192.png",
+      "src": "/pwa/icon-192.png?v=icas-sucat-1",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa/icon-512.png",
+      "src": "/pwa/icon-512.png?v=icas-sucat-1",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
