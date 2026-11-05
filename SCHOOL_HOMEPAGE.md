@@ -10,7 +10,7 @@ Optional public fields include About, Mission, Vision, campus address, public ph
 
 Settings accept plain text, render escaped HTML, validate email and HTTPS URLs, reject credentials in links, and save all fields together. Only the explicit public-field list is read by the homepage; account data and private announcements are not published. Older clients submitting just school name and academic year preserve the new public fields. These values are stored in the existing settings table and included in paired backups. On free Render, download backups before losing ephemeral storage.
 
-Display preferences are available as a compact Accessibility menu in the homepage navigation. The standalone toolbar row and green top strip are removed on this page. The header contains the single primary portal sign-in button; the repeated green sign-in section is removed. The school assistant, public queue link in the footer and install controls remain available. Install controls appear in the public footer; their placement on signed-in pages is unchanged. The homepage and private pages are not added to the offline cache.
+The homepage automatically adapts to the screen width. The manual Accessibility menu, standalone toolbar row and green top strip are removed. Native browser zoom and device display preferences remain available. The header contains the single primary portal sign-in button; the repeated green sign-in section is removed. The school assistant, public queue link in the footer and install controls remain available. Install controls appear in the public footer; their placement on signed-in pages is unchanged. The homepage and private pages are not added to the offline cache.
 
 ## Verification
 

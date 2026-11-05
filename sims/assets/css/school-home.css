@@ -20,10 +20,6 @@
 
 .school-home section[id]{scroll-margin-top:24px}
 
-/* Display preferences sit beside the site links rather than in a full-width toolbar. */
-.school-home .school-navigation .campus-accessibility{position:relative;top:auto;align-self:center;width:auto;padding:0;margin-left:auto;background:transparent;border:0;font:inherit;z-index:1600}
-.school-home .school-navigation .campus-accessibility summary{border:0;border-radius:0;padding:10px 0;min-height:44px;font:400 13px/1.6 Arial,Helvetica,sans-serif;gap:6px}
-.school-home .school-navigation .campus-accessibility-panel{right:0;top:calc(100% + 8px);width:min(24rem,calc(100vw - 36px));max-height:calc(100dvh - 170px)}
 .school-home .school-identity p{font-size:20px;line-height:1.35;letter-spacing:0}
 .school-home .school-footer{border-top:1px solid #d7ded5}
-@media(max-width:640px){.school-home .school-navigation nav{align-items:center;gap:20px}.school-home .school-navigation .campus-accessibility summary{font-size:12px}.school-home .school-identity p{font-size:16px}.school-home .school-navigation .campus-accessibility-panel{max-height:calc(100dvh - 175px)}}
+@media(max-width:640px){.school-home .school-identity p{font-size:16px}}
