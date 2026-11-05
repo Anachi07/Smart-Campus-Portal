@@ -1,6 +1,6 @@
 # Public school homepage
 
-The page at `/` is the public website for **Infotech College of Arts and Sciences (ICAS), Sucat branch**, using the name and branch supplied by the project owner. It displays HRS, IT, BSHM and BSIT separately, with program inquiries, school contact information and portal access. The existing supplied school logo is retained. The page uses its own styles; signed-in academic and queue layouts are unchanged.
+The page at `/` is the public website for **Infotech College of Arts and Sciences (ICAS), Sucat branch**, using the name and branch supplied by the project owner. It displays HRS, IT, BSHM and BSIT separately, with program inquiries, school contact information and portal access. The school logo uses a transparent-background PNG. Its homepage container has no white fill, outer frame or gold top line. The install/loading icons use the same transparent logo. The page uses its own styles; signed-in academic and queue layouts are unchanged.
 
 ## Update school information
 

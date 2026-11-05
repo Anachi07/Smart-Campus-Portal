@@ -10,7 +10,7 @@ The shared layout assets retain their existing `public/accessibility/preferences
 - Wrap wide tables in a keyboard-scrollable region so all columns remain available without stretching the whole page. Wide tables scroll within their container; charts and PDFs are not rewritten into mobile cards.
 - Recalculate sticky toolbar/header offsets and table overflow after resizing or dynamic content changes. Footer app controls are excluded from sticky-header height.
 
-Private pages, submitted values and account records remain outside the offline cache. Public-shell cache v4 updates the existing four public offline assets. No database tables, dependencies or credentials are added. Responsive behavior does not constitute a complete content/PDF/chart accessibility audit.
+Private pages, submitted values and account records remain outside the offline cache. Public-shell cache v5 updates the existing four public offline assets. No database tables, dependencies or credentials are added. Responsive behavior does not constitute a complete content/PDF/chart accessibility audit.
 
 ## Verification
 
