@@ -20,6 +20,8 @@ function init_campus_work(PDO $pdo): void {
     init_school_courses($pdo);
     require_once __DIR__.'/facilities.php';
     init_facilities($pdo);
+    require_once __DIR__.'/lost-found.php';
+    init_lost_found($pdo);
     $columns=array_column($pdo->query('PRAGMA table_info(announcements)')->fetchAll(),'name');
     foreach(['target_course_id','target_section_id'] as $column)if(!in_array($column,$columns,true))$pdo->exec("ALTER TABLE announcements ADD COLUMN $column INTEGER");
     if(getenv('CAMPUS_MODE')!=='production' && !$pdo->query('SELECT COUNT(*) FROM campus_offices')->fetchColumn() && !$pdo->query("SELECT value FROM settings WHERE key='campus_work_initialized'")->fetchColumn()) {

@@ -152,3 +152,11 @@ Historical demo assignments are preserved rather than silently reassigned. The n
 Facility reservations module supports school-configured rooms, labs, and equipment,
 time conflicts, office review, cancellations, a private request history, and a daily
 availability calendar. See [FACILITIES.md](FACILITIES.md) for setup and scope.
+
+## Lost and found
+
+Campus members can report lost/found belongings and search staff-approved generic
+listings. Ownership claims, evidence, and review histories are private. Staff verify
+claims and confirm an in-person handover before release; one verified claim can hold
+an item at a time. See [LOST_FOUND.md](LOST_FOUND.md) for moderation, privacy,
+collection, backup behavior, and checks.
