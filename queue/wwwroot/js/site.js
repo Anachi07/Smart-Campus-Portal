@@ -64,11 +64,12 @@ function startNotificationPolling(){
   const url = document.body.dataset.notificationSummaryUrl;
   if(!url) return;
 
-  let lastId = Number(sessionStorage.getItem('smartqueue-last-notification-id') || '0');
+  let lastId = 0;
   const initialUnread = Number(document.body.dataset.initialUnread || '0');
   setNotificationBadge(initialUnread);
 
   function poll(){
+    if (document.hidden || !navigator.onLine) return;
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(res){ return res.ok ? res.json() : null; })
       .then(function(data){
@@ -77,10 +78,11 @@ function startNotificationPolling(){
         const latestId = Number(data.latestId || 0);
         if(latestId > 0 && lastId > 0 && latestId !== lastId){
           showSmartQueueToast(data.latestTitle, data.latestMessage);
+          window.dispatchEvent(new Event('campus:notification'));
         }
         if(latestId > 0){
           lastId = latestId;
-          sessionStorage.setItem('smartqueue-last-notification-id', String(latestId));
+
         }
       })
       .catch(function(){});
@@ -109,7 +111,8 @@ function setupButtonRipple(){
 document.addEventListener('DOMContentLoaded', function(){
   document.body.classList.add('page-ready');
   document.querySelectorAll('form').forEach(function(form){
-    form.addEventListener('submit', function(){
+    form.addEventListener('submit', function(event){
+      if(event.defaultPrevented) return;
       const btn = form.querySelector('button[type="submit"]');
       if(btn){ btn.classList.add('is-loading'); }
     });

@@ -15,6 +15,7 @@ $entities = [
 ];
 $entity=(string)($_GET['entity']??'students'); if(!isset($entities[$entity])) $entity='students';
 if($entity==='users') require_role(['Super Admin']);
+if($entity==='announcements')redirect('/sims/modules/shared/announcements.php');
 $cfg=$entities[$entity]; $table=$cfg['table']; $error='';
 $references=['role_id'=>['roles','name'],'course_id'=>['courses','code'],'section_id'=>['sections','name'],'student_id'=>['students','student_no'],'subject_id'=>['subjects','code'],'teacher_id'=>['teachers','employee_no'],'adviser_teacher_id'=>['teachers','employee_no']];
 $choices=[];
@@ -42,12 +43,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $value=trim((string)($_POST[$field]??''));
             if(strlen($value)>($field==='body'||$field==='description'?5000:200)) throw new InvalidArgumentException("$label is too long.");
             if(isset($choices[$field])) {
-                if($value!=='' && !in_array((int)$value,array_map(fn($o)=>(int)$o['id'],$choices[$field]),true)) throw new InvalidArgumentException("Choose a valid $label.");
+                if($value!=='' && !in_array((int)$value,array_map(fn($o)=>(int)$o['id'],$choices[$field]),true) && !($field==='course_id'&&$action==='update'&&$existing&&(int)$value===(int)$existing['course_id'])) throw new InvalidArgumentException("Choose a valid $label.");
                 $value=$value===''?null:(int)$value;
             }
             if($action!=='delete' && isset($enums[$field]) && !in_array((string)$value,$enums[$field],true)) throw new InvalidArgumentException("Choose a valid $label.");
             $values[$field]=$value;
         }
+        if($entity==='courses'){if($action==='delete')throw new InvalidArgumentException('The school course catalog is HRS, IT, BSHM, and BSIT. Preserve course records linked to historical data.');if(!in_array($values['code'],SCHOOL_COURSE_CODES,true))throw new InvalidArgumentException('School course codes are HRS, IT, BSHM, and BSIT. IT and BSIT are separate programs.');$values['is_offered']=1;}
         db()->beginTransaction();
         if($entity==='users') {
             $isAdmin=$existing && (int)$existing['role_id']===role_id('Super Admin') && $existing['status']==='Active';
@@ -105,10 +107,11 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     catch(PDOException $e) { if(db()->inTransaction()) db()->rollBack(); $error='Unable to save. Check required fields, duplicate values, or records linked to this item.'; }
 }
 $edit=isset($_GET['edit'])?row("SELECT * FROM $table WHERE id=?",[(int)$_GET['edit']]):null;
+if($edit&&!empty($edit['course_id'])&&!in_array((int)$edit['course_id'],array_map(fn($c)=>(int)$c['id'],$choices['course_id']),true)){$legacy=row('SELECT id,code FROM courses WHERE id=?',[$edit['course_id']]);if($legacy)$choices['course_id'][]=['id'=>$legacy['id'],'label'=>$legacy['code'].' (historical assignment — retained)'];}
 $form=$error?array_merge($edit??[],$_POST):($edit??[]);
 $search=trim((string)($_GET['q']??''));
 $order=$entity==='users'?"CASE WHEN status='Pending' THEN 0 ELSE 1 END,id DESC":"id DESC";
-$data=rows("SELECT * FROM $table ORDER BY $order LIMIT 200");
+$data=rows("SELECT * FROM $table ".($entity==='courses'?'WHERE is_offered=1 ':'')."ORDER BY $order LIMIT 200");
 if($search!=='') $data=array_values(array_filter($data,fn($record)=>stripos(implode(' ',array_map('strval',$record)),$search)!==false));
 render_header($cfg['title']); ?>
 <?php if($entity==='users'): ?><div class="alert alert-info">Super Admin only · <?= (int)scalar("SELECT COUNT(*) FROM users WHERE status='Pending'") ?> pending registrations. Review identity with the school before approving. Account credentials are shared privately.</div><?php endif; ?>
@@ -126,5 +129,5 @@ render_header($cfg['title']); ?>
 <button class="btn btn-primary w-100">Save record</button></form></section></div>
 <div class="col-xl-8"><section class="panel"><form method="get" class="d-flex gap-2 mb-4"><input type="hidden" name="entity" value="<?= e($entity) ?>"><label class="visually-hidden" for="record-search">Search records</label><input id="record-search" name="q" value="<?= e($search) ?>" class="form-control" placeholder="Search these records…"><button class="btn btn-outline-primary">Search</button></form>
 <?php if(!$data): empty_state('No matching records','Add a record or try a different search.'); else: ?><div class="table-responsive"><table class="table table-hover"><thead><tr><?php foreach($cfg['list'] as $col): ?><th><?= e(ucwords(str_replace('_',' ',$col))) ?></th><?php endforeach; ?><th>Actions</th></tr></thead><tbody>
-<?php foreach($data as $record): ?><tr><?php foreach($cfg['list'] as $col): $value=$record[$col]??''; if(($col==='gpa'||$col==='attendance_rate')&&(float)$value===0) $value='—'; if(isset($choices[$col])) foreach($choices[$col] as $option) if((string)$option['id']===(string)$value) $value=$option['label']; ?><td><?= e($value) ?></td><?php endforeach; ?><td class="text-nowrap"><?php if($entity==='users' && $record['status']==='Pending'): ?><form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-primary" name="action" value="approve">Approve</button> <button class="btn btn-sm btn-outline-danger" name="action" value="reject">Reject</button></form> <?php endif; ?><a class="btn btn-sm btn-outline-primary" href="manage.php?entity=<?= e($entity) ?>&edit=<?= e($record['id']) ?>" aria-label="Edit record">Edit</a> <form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-outline-danger confirm-delete" aria-label="Delete record">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section></div></div>
+<?php foreach($data as $record): ?><tr><?php foreach($cfg['list'] as $col): $value=$record[$col]??''; if(($col==='gpa'||$col==='attendance_rate')&&(float)$value===0) $value='—'; if(isset($choices[$col])) foreach($choices[$col] as $option) if((string)$option['id']===(string)$value) $value=$option['label']; if($col==='course_id'&&is_numeric($value)){$oldCourse=row('SELECT code,is_offered FROM courses WHERE id=?',[(int)$value]);if($oldCourse)$value=$oldCourse['code'].($oldCourse['is_offered']?'':' (historical)');} ?><td><?= e($value) ?></td><?php endforeach; ?><td class="text-nowrap"><?php if($entity==='users' && $record['status']==='Pending'): ?><form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-primary" name="action" value="approve">Approve</button> <button class="btn btn-sm btn-outline-danger" name="action" value="reject">Reject</button></form> <?php endif; ?><a class="btn btn-sm btn-outline-primary" href="manage.php?entity=<?= e($entity) ?>&edit=<?= e($record['id']) ?>" aria-label="Edit record">Edit</a> <form method="post" class="d-inline"><?= csrf_field() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= e($record['id']) ?>"><button class="btn btn-sm btn-outline-danger confirm-delete" aria-label="Delete record">Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?></section></div></div>
 <?php render_footer(); ?>

@@ -11,10 +11,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $user=row('SELECT * FROM users WHERE username=? COLLATE NOCASE AND status="Active"',[$username]);
         if ($user && password_verify($password,$user['password_hash'])) {
             db()->prepare('DELETE FROM login_attempts WHERE identity=?')->execute([$identity]);
-            session_regenerate_id(true);
-            $_SESSION=['user_id'=>$user['id'],'role_id'=>$user['role_id'],'auth_version'=>(int)$user['auth_version'],'last_activity'=>time(),'workspace_epoch'=>setting('session_epoch','initial')];
-            db()->prepare('UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$user['id']]);
-            log_activity($user['id'],'Login','Signed in to campus portal.'); redirect('/portal');
+            if(scalar('SELECT COUNT(*) FROM account_mfa WHERE user_id=?',[$user['id']])) {
+                session_regenerate_id(true);$_SESSION=['mfa_challenge'=>['id'=>(int)$user['id'],'version'=>(int)$user['auth_version'],'epoch'=>setting('session_epoch','initial'),'expires'=>time()+300]];redirect('/sims/mfa.php');
+            }
+            establish_campus_login($user);redirect('/portal');
         }
         $failures=$attempt && (int)$attempt['blocked_until']>time()-900 ? (int)$attempt['failures']+1 : 1;
         db()->prepare('INSERT INTO login_attempts(identity,failures,blocked_until) VALUES(?,?,?) ON CONFLICT(identity) DO UPDATE SET failures=excluded.failures,blocked_until=excluded.blocked_until')->execute([$identity,$failures,$failures>=5?time()+900:time()]);

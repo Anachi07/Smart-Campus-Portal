@@ -26,8 +26,9 @@
     <link rel="stylesheet" href="~/css/campus.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/icas.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/operations.css" asp-append-version="true" />
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa/pwa.css"><script src="/pwa/pwa.js" defer></script>
 </head>
-<body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount">
+<body class="@(isAuthPage ? "auth-body" : "app-body") theme-@theme" data-notification-summary-url="@notificationSummaryUrl" data-initial-unread="@unreadCount" data-notification-user="@userId">
     @if (!isAuthPage)
     {
         <header class="topbar app-topbar glass-nav">

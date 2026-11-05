@@ -45,8 +45,10 @@ public partial class QueueStore
 
     public static void ValidateBackup(string json) {
         var data = JsonSerializer.Deserialize<SmartQueueData>(json);
-        if (data == null || data.Users == null || data.Tickets == null || data.Counters == null || data.Settings == null)
+        if (data == null || data.Users == null || data.Tickets == null || data.Counters == null || data.Settings == null
+            || data.Tickets.Any(t => t == null) || data.Users.Any(u => u == null))
             throw new InvalidDataException("Invalid queue backup.");
+        if (data.Tickets.Select(t=>t.TicketNumber).Distinct().Count()!=data.Tickets.Count) throw new InvalidDataException("Duplicate ticket numbers.");
         ValidateOperationsBackup(data);
         if (data.Tickets.Any(t => t.Status == "Scheduled" && !t.ScheduledAt.HasValue)) throw new InvalidDataException("Scheduled tickets require an appointment time.");
         if (data.Users.Select(u => u.Id).Distinct().Count() != data.Users.Count || data.Tickets.Select(t => t.Id).Distinct().Count() != data.Tickets.Count)
@@ -903,6 +905,8 @@ public partial class QueueStore
                     loaded.Tickets ??= new List<Ticket>();
                     loaded.Counters ??= new List<Counter>();
                     loaded.VisitExchanges ??= new();
+                    loaded.IssuedDocuments ??= new();
+                    loaded.RequirementSubmissions ??= new();
                     loaded.ServiceRequirements ??= new();loaded.OfficeClosures ??= new();loaded.Feedback ??= new();
                     var operationsChanged=InitializeLegacyOperations(loaded);
                     loaded.SmsNotifications ??= new List<SmsNotification>();

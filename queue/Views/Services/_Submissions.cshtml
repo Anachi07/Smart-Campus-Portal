@@ -1,0 +1,45 @@
+@model RequestDetailViewModel
+@{var t=Model.Ticket;var owner=t.CustomerUserId==Context.Session.GetInt32("UserId");var open=QueueStore.SubmissionsOpen(t);}
+@if(t.ServiceType=="Document Request") {
+<section class="panel submission-workspace" aria-labelledby="submission-heading">
+<div class="section-head"><div><p class="eyebrow">PRIVATE REQUIREMENTS</p><h2 id="submission-heading">Submit & review requirements</h2><p class="muted">Files are visible only to this requester and authorized office staff. Submit only what the Registrar asks for; bring originals when required.</p></div></div>
+@if(!t.Checklist.Any()) {<p class="ops-empty">The school has not listed upload requirements for this request. Contact the Registrar before sending any documents.</p>}
+@foreach(var item in t.Checklist) {
+    var versions=Model.Submissions.Where(s=>s.RequirementId==item.RequirementId).OrderByDescending(s=>s.Version).ToList();
+    var latest=versions.FirstOrDefault();
+    <article class="submission-item" data-requirement-id="@item.RequirementId">
+        <div class="submission-heading"><div><h3>@item.Title</h3><p class="muted">@(item.Required?"Required":"Optional") · @item.Instructions</p></div><span class="pill">@(latest?.Status??(item.Verified?"Verified in person":"No file submitted"))</span></div>
+        @if(latest!=null) {
+            <p><a class="submission-download" asp-action="RequirementFile" asp-route-submissionId="@latest.Id">Download @latest.FileName</a> <small>· @((latest.Length/1024d).ToString("0.#")) KB · Version @latest.Version</small></p>
+            <p class="muted">Submitted @latest.UploadedAt.ToString("MMM d, yyyy h:mm tt") · Manila</p>
+            @if(!string.IsNullOrEmpty(latest.ReviewNote)){<div class="submission-note" role="note"><strong>Registrar feedback</strong><p>@latest.ReviewNote</p></div>}
+            @if(latest.ReviewedAt.HasValue){<p class="muted">Reviewed @latest.ReviewedAt.Value.ToString("MMM d, yyyy h:mm tt") · Manila</p>}
+        }
+        @if(owner&&open&&(latest?.Version??0)<QueueStore.MaxSubmissionVersions) {
+            <form asp-action="UploadRequirement" method="post" enctype="multipart/form-data" class="submission-upload">
+                <input type="hidden" name="id" value="@t.TicketNumber"><input type="hidden" name="requirementId" value="@item.RequirementId"><input type="hidden" name="expectedVersion" value="@(latest?.Version??0)">
+                <label for="requirement-file-@item.RequirementId">@(latest?.Status=="Returned for correction"?"Choose your corrected file":latest!=null?"Choose a replacement file":"Choose a requirement file")</label>
+                <input id="requirement-file-@item.RequirementId" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required aria-describedby="upload-help-@item.RequirementId">
+                <small id="upload-help-@item.RequirementId">PDF, PNG, or JPEG · Up to 2 MB each. A replacement needs a new office review. Previous versions stay in the private history. Maximum five versions per requirement.</small>
+                <button class="btn btn-soft" type="submit">@(latest==null?"Submit privately":"Submit new version")</button>
+            </form>
+        } else if(owner&&open) {<p class="muted">The five-version limit has been reached. Contact the Registrar for assistance.</p>}
+        @if(Model.Staff&&open&&latest?.Status=="Pending review") {
+            <form asp-action="ReviewRequirement" method="post" class="submission-review">
+                <input type="hidden" name="id" value="@t.TicketNumber"><input type="hidden" name="submissionId" value="@latest.Id"><input type="hidden" name="expectedVersion" value="@latest.Version">
+                <label for="review-decision-@item.RequirementId">Office decision<select id="review-decision-@item.RequirementId" name="decision" data-review-decision required><option value="">Choose a decision</option><option value="accept">Accept requirement</option><option value="return">Return for correction</option></select></label>
+                <label for="review-note-@item.RequirementId">Feedback for requester<textarea id="review-note-@item.RequirementId" name="note" rows="3" maxlength="600" data-review-note placeholder="For a return, explain what needs correcting (at least 5 characters)."></textarea></label>
+                <p class="muted">Download and inspect the file before accepting it. Acceptance verifies this requirement; it does not issue or release an academic document.</p>
+                <button class="btn" type="submit">Save review</button>
+            </form>
+        }
+        @if(versions.Count>1) {
+            <details class="submission-history"><summary>Previous submissions (@(versions.Count-1))</summary>
+            @foreach(var previous in versions.Skip(1)){<article><strong>Version @previous.Version · @previous.Status</strong><p><a asp-action="RequirementFile" asp-route-submissionId="@previous.Id">Download @previous.FileName</a></p><small>@previous.UploadedAt.ToString("MMM d, yyyy h:mm tt") · Manila</small>@if(previous.Status=="Pending review"){<p class="muted">Replaced before review. Only the latest version can be reviewed.</p>}<p>@previous.ReviewNote</p></article>}
+            </details>
+        }
+    </article>
+}
+@if(!open){<p class="muted">Uploads and reviews are closed for this request. Existing files and feedback remain available privately.</p>}
+</section>
+}

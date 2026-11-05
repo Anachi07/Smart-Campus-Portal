@@ -2,6 +2,7 @@
 function validate_campus_database(string $path): void {
     $probe=new PDO('sqlite:'.$path); $probe->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
     if($probe->query('PRAGMA integrity_check')->fetchColumn()!=='ok') throw new InvalidArgumentException('The academic database failed its integrity check.');
+    validate_campus_work_backup($probe);
     foreach(['users'=>'id,username,password_hash,role_id,status,full_name','roles'=>'id,name','students'=>'id,user_id,student_no','teachers'=>'id,user_id','parents'=>'id,user_id,student_id','courses'=>'id,code','subjects'=>'id,code','sections'=>'id,name','school_years'=>'id,name','schedules'=>'id,subject_id,section_id','attendance'=>'id,student_id,subject_id,date,status','grades'=>'id,student_id,subject_id','announcements'=>'id,title','notifications'=>'id,user_id','predictions'=>'id,student_id','activity_logs'=>'id','settings'=>'key,value'] as $table=>$columns) $probe->query("SELECT $columns FROM $table LIMIT 0");
     if(!(int)$probe->query('SELECT COUNT(*) FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name IN ("Admin","Super Admin") AND u.status="Active"')->fetchColumn()) throw new InvalidArgumentException('A backup must contain an active administrator.');
     $migrated=$probe->query("SELECT value FROM settings WHERE key='super_admin_migrated'")->fetchColumn();
@@ -12,4 +13,36 @@ function queue_backup_request(?string $json=null): bool {
     $context=stream_context_create(['http'=>['method'=>'POST','header'=>"X-Campus-Secret: $secret\r\nContent-Type: application/json\r\n",'content'=>$json??'','timeout'=>10,'ignore_errors'=>true]]);
     $result=@file_get_contents('http://127.0.0.1:8081/internal/queue-reload'.($json!==null?'?validate=1':''),false,$context);
     return isset($http_response_header[0]) && str_contains($http_response_header[0],' 204 ');
+}
+
+function complete_workspace_backup(): array {
+    $lock=fopen(dirname(DB_PATH).'/.workspace-snapshot.lock','c');flock($lock,LOCK_EX);
+    $temporary=tempnam(dirname(DB_PATH),'.backup-');unlink($temporary);
+    try {
+        db()->exec('VACUUM INTO '.db()->quote($temporary));
+        $queue=json_decode(file_get_contents(QUEUE_DATA_PATH),true,512,JSON_THROW_ON_ERROR);
+        $archive=['format'=>'smart-campus-backup-v1','created_at'=>date(DATE_ATOM),'academic_database'=>base64_encode(file_get_contents($temporary)),'queue_data'=>$queue];
+        if(file_exists(campus_key_path()))$archive['security_material']=base64_encode(file_get_contents(campus_key_path()));
+        return$archive;
+    }finally{if(file_exists($temporary))unlink($temporary);flock($lock,LOCK_UN);fclose($lock);}
+}
+function campus_backup_dir(): string {return getenv('CAMPUS_BACKUP_DIR')?:dirname(DB_PATH).'/backups';}
+
+function validate_campus_work_backup(PDO $probe): void {
+    $tables=['campus_resources'=>'id,name,kind,location,capacity,office_id,approval_required,active,revision','campus_bookings'=>'id,resource_id,owner_id,starts_at,ends_at,purpose,status,revision,request_key,staff_note,created_at,updated_at','campus_booking_events'=>'id,booking_id,actor_id,body,created_at','enrollment_requirements'=>'id,year_id,course_id,office_id,title,instructions,required,active','enrollment_checklists'=>'id,owner_id,year_id,year_name,course_name,revision,created_at,updated_at','enrollment_items'=>'id,checklist_id,requirement_id,office_id,office_name,title,instructions,required,prepared,status,note,reviewed_by,reviewed_at','enrollment_history'=>'id,checklist_id,actor_id,body,created_at','campus_offices'=>'id,name,reviewer_id,active','campus_form_types'=>'id,name,route,active','campus_requests'=>'id,reference,kind,owner_id,title,details,cycle,status,revision,request_key,created_at,updated_at','campus_steps'=>'id,request_id,office_id,office_name,position,status,note,reviewed_by,reviewed_at','campus_work_events'=>'id,request_id,actor_id,body,internal,created_at','attendance_windows'=>'id,schedule_id,opened_by,token,token_expires,expires_at,closed','attendance_window_entries'=>'window_id,student_id,created_at','account_mfa'=>'user_id,secret,recovery_hashes,last_step,enabled_at'];
+    foreach($tables as $table=>$columns){
+        $check=$probe->prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?");$check->execute([$table]);if(!$check->fetchColumn())continue;
+        $probe->query("SELECT $columns FROM $table LIMIT 0");if($probe->query("PRAGMA foreign_key_check($table)")->fetch())throw new InvalidArgumentException('The backup has broken campus workflow references.');
+        if($table==='campus_form_types')foreach($probe->query('SELECT route FROM campus_form_types') as $type){$route=json_decode($type['route'],true);if(!is_array($route)||!array_is_list($route)||count($route)<1||count($route)>10||count(array_unique($route))!==count($route))throw new InvalidArgumentException('Invalid school form approval routes.');foreach($route as $oid){if(!is_int($oid)||$oid<1)throw new InvalidArgumentException('Invalid school office in form route.');$exists=$probe->prepare('SELECT COUNT(*) FROM campus_offices WHERE id=?');$exists->execute([$oid]);if(!$exists->fetchColumn())throw new InvalidArgumentException('An approval office is missing from the backup.');}}
+        if($table==='enrollment_items'&&$probe->query("SELECT COUNT(*) FROM enrollment_items WHERE status NOT IN('Pending','Verified','Returned') OR prepared NOT IN(0,1) OR required NOT IN(0,1) OR (status='Verified' AND (prepared<>1 OR reviewed_by IS NULL))")->fetchColumn())throw new InvalidArgumentException('Invalid enrollment checklist state.');
+        if($table==='campus_resources')foreach($probe->query('SELECT * FROM campus_resources') as $r)if(!in_array($r['kind'],['Room','Laboratory','Equipment'],true)||(int)$r['capacity']<1||(int)$r['capacity']>10000||!in_array((int)$r['active'],[0,1],true)||!in_array((int)$r['approval_required'],[0,1],true))throw new InvalidArgumentException('Invalid facility configuration.');
+        if($table==='campus_bookings'){
+            foreach($probe->query('SELECT * FROM campus_bookings') as $b){$start=DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',$b['starts_at'],new DateTimeZone('UTC'));$end=DateTimeImmutable::createFromFormat('!Y-m-d H:i:s',$b['ends_at'],new DateTimeZone('UTC'));if(!$start||!$end||$start->format('Y-m-d H:i:s')!==$b['starts_at']||$end->format('Y-m-d H:i:s')!==$b['ends_at']||$end<=$start||$end->getTimestamp()-$start->getTimestamp()>28800||strlen($b['purpose'])<5||strlen($b['purpose'])>1000||strlen($b['staff_note'])>600||!preg_match('/^[a-f0-9]{32}$/',$b['request_key']))throw new InvalidArgumentException('Invalid facility reservation data.');}
+            if($probe->query("SELECT COUNT(*) FROM campus_bookings a JOIN campus_bookings b ON a.id<b.id AND a.resource_id=b.resource_id WHERE a.status IN('Pending','Approved') AND b.status IN('Pending','Approved') AND a.starts_at<b.ends_at AND b.starts_at<a.ends_at")->fetchColumn())throw new InvalidArgumentException('The backup has overlapping active facility reservations.');
+        }
+        if($table==='campus_bookings'&&$probe->query("SELECT COUNT(*) FROM campus_bookings WHERE status NOT IN('Pending','Approved','Rejected','Cancelled') OR starts_at>=ends_at OR revision<0")->fetchColumn())throw new InvalidArgumentException('Invalid facility reservation state.');
+        if($table==='campus_requests' && $probe->query("SELECT COUNT(*) FROM campus_requests WHERE kind NOT IN('clearance','helpdesk','form') OR status NOT IN('In review','Returned','Approved','Rejected','Resolved','Cancelled') OR revision<0")->fetchColumn())throw new InvalidArgumentException('Invalid campus request states.');
+        if($table==='campus_steps' && $probe->query("SELECT COUNT(*) FROM campus_steps WHERE status NOT IN('Pending','Approved','Returned','Rejected') OR position<0")->fetchColumn())throw new InvalidArgumentException('Invalid approval steps.');
+        if($table==='account_mfa')foreach($probe->query('SELECT * FROM account_mfa') as $mfa){$codes=json_decode($mfa['recovery_hashes'],true);if(!is_array($codes)||!array_is_list($codes)||count($codes)>10||strlen($mfa['secret'])>256||(int)$mfa['last_step']< -1)throw new InvalidArgumentException('Invalid account security data.');foreach($codes as $hash)if(!is_string($hash)||!preg_match('/^[a-f0-9]{64}$/',$hash))throw new InvalidArgumentException('Invalid MFA recovery data.');}
+    }
 }

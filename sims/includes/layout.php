@@ -18,9 +18,11 @@ function render_header(string $title='Dashboard'): void {
     <link href="<?= asset('css/portal.css') ?>" rel="stylesheet">
     <link href="<?= asset('css/icas.css') ?>" rel="stylesheet">
     <link rel="icon" href="/sims/brand-logo.php">
+    <link rel="stylesheet" href="/sims/assets/css/campus-work.css"><script src="/sims/assets/js/campus-work.js" defer></script>
     <meta name="theme-color" content="#104b2b">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/pwa/icon-192.png"><link rel="stylesheet" href="/pwa/pwa.css"><script src="/pwa/pwa.js" defer></script>
 </head>
-<body>
+<body data-notification-summary-url="<?= $user ? (in_array($role,['Admin','Super Admin'],true)?'/Admin/NotificationSummary':'/Queue/NotificationSummary') : '' ?>" data-campus-notification-poll="true">
 <a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell"><button class="sidebar-overlay" id="sidebarOverlay" aria-label="Close navigation" hidden></button>
 <?php render_sidebar($role); ?>
 <main class="main-content" id="main-content">
@@ -71,7 +73,14 @@ function render_sidebar(string $role): void {
     elseif($role==='Parent') $groups=['Student progress'=>[['modules/parent/monitor.php','fa-child','Linked student'],['modules/shared/reports.php','fa-file-export','Reports']]];
 ?>
 <aside class="sidebar" id="sidebar"><a class="brand" href="/portal"><img src="/sims/brand-logo.php" alt="ICAS Philippines"><div><strong><?= e(setting('school_name','ICAS Philippines')) ?></strong><span>CAMPUS PORTAL</span></div></a><div class="side-section">My workspace</div><a class="nav-link <?= $uri==='/portal'?'active':'' ?>" href="/portal"><i class="fa-solid fa-house"></i><span>Overview</span></a>
-<?php $link(['dashboard.php','fa-chart-simple','Academic dashboard']); ?>
+<?php $link(['dashboard.php','fa-chart-simple','Academic dashboard']);
+if(in_array($role,['Student','Teacher','Admin','Super Admin'],true))$link(['modules/shared/facilities.php','fa-calendar-check','Facility reservations']);
+if($role==='Super Admin')$link(['modules/admin/facilities.php','fa-building','Manage facilities']);
+$link(['modules/shared/enrollment.php','fa-list-check','Enrollment checklist']);
+if($role==='Super Admin')$link(['modules/admin/enrollment_requirements.php','fa-clipboard-list','Enrollment requirements']);
+$link(['modules/shared/workflows.php?kind=clearance','fa-list-check','Digital clearance']);$link(['modules/shared/workflows.php?kind=helpdesk','fa-headset','School helpdesk']);$link(['modules/shared/workflows.php?kind=form','fa-file-signature','School forms']);$link(['modules/shared/announcements.php','fa-bullhorn','Announcements']);$link(['modules/shared/rotating_attendance.php','fa-qrcode','Class QR attendance']);$link(['modules/shared/security.php','fa-shield-halved','Account security']);
+if(in_array($role,['Admin','Super Admin'],true))$link(['modules/admin/workload.php','fa-chart-simple','Staff workload']);
+if($role==='Super Admin')$link(['modules/admin/workflow_settings.php','fa-route','Offices & approval routes']); ?>
 <a class="nav-link" href="<?= in_array($role,['Admin','Super Admin'],true)?'/Admin/Dashboard':'/Queue/MyTicket' ?>"><i class="fa-solid fa-ticket"></i><span>Registrar & Cashier</span></a><button class="nav-link sidebar-assistant" type="button" data-assistant-action="open"><i class="fa-regular fa-comment-dots"></i><span>ICAS Assistant</span></button>
 <?php foreach($groups as $title=>$items): $open=!in_array($role,['Admin','Super Admin'],true)||array_filter($items,fn($item)=>$active($item[0])); ?><details class="nav-group" <?= $open?'open':'' ?>><summary><?= e($title) ?><i class="fa-solid fa-chevron-down"></i></summary><div><?php foreach($items as $item)$link($item); ?></div></details><?php endforeach; ?>
 <a class="nav-link" href="/Services/Requests"><i class="fa-solid fa-file-lines"></i><span>My service requests</span></a><div class="side-section">Stay connected</div><?php $link(['modules/shared/calendar.php','fa-calendar','Calendar']);$link(['modules/shared/notifications.php','fa-bell','Notifications']);$link(['modules/student/profile.php','fa-user','My profile']); ?>

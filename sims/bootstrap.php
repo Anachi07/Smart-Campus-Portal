@@ -63,6 +63,8 @@ function init_database(PDO $pdo): void {
     $pdo->exec('CREATE INDEX IF NOT EXISTS attendance_student_date ON attendance(student_id,date)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS schedules_section_subject ON schedules(section_id,subject_id)');
     seed_database($pdo);
+    require_once __DIR__.'/includes/campus-work.php';
+    init_campus_work($pdo);
     // Run once for older workspaces: preserve the owner's login without creating a public password.
     $pdo->beginTransaction();
     try {
@@ -210,6 +212,7 @@ function require_login(): void {
     if (!$activeUser || $activeUser['status'] !== 'Active') { session_destroy(); redirect_root('login.php'); }
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT) { session_destroy(); redirect_root('login.php?timeout=1'); }
     $_SESSION['last_activity'] = time();
+    if(campus_mode()==='production' && in_array($activeUser['role'],['Admin','Super Admin'],true) && !scalar('SELECT COUNT(*) FROM account_mfa WHERE user_id=?',[$activeUser['id']]) && !str_ends_with($_SERVER['SCRIPT_FILENAME']??'','/shared/security.php') && !str_ends_with($_SERVER['SCRIPT_FILENAME']??'','/logout.php'))redirect_root('modules/shared/security.php');
 }
 function require_role(array $roles): void { require_login(); if (!in_array(current_user()['role'], $roles, true) && !(current_user()['role']==='Super Admin' && in_array('Admin',$roles,true))) { http_response_code(403); exit('403 Forbidden'); } }
 function csrf_token(): string { if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); } return $_SESSION['csrf']; }
@@ -256,10 +259,11 @@ function grade_to_gpa(float $grade): float {
 function option_list(string $table, string $label='name'): array {
     $safeTable = preg_replace('/[^a-z_]/','',$table);
     $safeLabel = preg_replace('/[^a-z_]/','',$label);
-    return rows("SELECT id, $safeLabel AS label FROM $safeTable ORDER BY $safeLabel");
+    return rows("SELECT id, $safeLabel AS label FROM $safeTable ".($safeTable==='courses'?'WHERE is_offered=1 ':'')."ORDER BY $safeLabel");
 }
 
 require_once __DIR__ . '/includes/access.php';
+require_once __DIR__ . '/includes/mfa.php';
 db();
 if (setting('school_branding_version') !== 'icas-1') {
     $school=setting('school_name');

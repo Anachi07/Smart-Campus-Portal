@@ -48,6 +48,8 @@ public class ServiceFeedback
 }
 public class RequestDetailViewModel
 {
+    public List<IssuedDocumentSummary> IssuedDocuments { get; set; } = new();
+    public List<SubmissionSummary> Submissions { get; set; } = new();
     public Ticket Ticket { get; set; } = new();
     public ServiceFeedback? Feedback { get; set; }
     public bool Staff { get; set; }

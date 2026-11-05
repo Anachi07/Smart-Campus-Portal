@@ -1,0 +1,36 @@
+{
+  "id": "/",
+  "name": "ICAS Philippines Campus Portal",
+  "short_name": "ICAS Campus",
+  "description": "Your academics and campus services, together.",
+  "start_url": "/portal",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f8f4",
+  "theme_color": "#104b2b",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My service requests",
+      "url": "/Services/Requests"
+    },
+    {
+      "name": "Track my ticket",
+      "url": "/Queue/MyTicket"
+    }
+  ]
+}

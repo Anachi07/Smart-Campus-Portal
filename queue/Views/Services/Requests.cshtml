@@ -1,10 +1,17 @@
 @model List<Ticket>
-@{ViewData["Title"]="Service requests";bool staff=ViewBag.Staff==true;}
+@{ViewData["Title"]="Service requests";bool staff=ViewBag.Staff==true;var attention=ViewBag.SubmissionAttention as Dictionary<string,string>??new();}
 <section class="@(staff?"admin-layout":"content-shell")">
 @if(staff){@await Html.PartialAsync("_AdminSidebar")}
 <div class="@(staff?"admin-main":"")">
 <div class="section-head"><div><p class="eyebrow">REGISTRAR & CASHIER</p><h1>@(staff?"Document requests":"My service requests")</h1><p class="muted">Track requirements, document processing, and completed transactions.</p></div><div class="actions">@if(!staff){<a class="btn" href="/Queue/GetTicket">New transaction</a>}<a class="btn btn-soft" href="/Services/OfficeCalendar">Office calendar</a></div></div>
+<div class="ops-summary" aria-label="Request overview"><article><strong>@Model.Count</strong><span>Requests shown</span></article><article><strong>@Model.Count(t=>t.DocumentStatus is "For review" or "Processing")</strong><span>Documents in progress</span></article><article><strong>@Model.Count(t=>t.DocumentStatus=="Ready for pickup")</strong><span>Ready for collection</span></article><article><strong>@Model.Count(t=>t.DocumentStatus=="Released"||(t.DocumentStatus==null&&t.Status=="Completed"))</strong><span>Completed transactions</span></article></div>
+<div class="panel"><label for="request-search">Find a request</label><input id="request-search" type="search" placeholder="Search ticket number, transaction, or office" aria-controls="request-results"><p class="muted" id="request-search-status" role="status"></p></div>
 @if(staff){<form method="get" class="panel ops-filter"><label>Document stage<select name="stage"><option value="">All stages</option>@foreach(var stage in QueueStore.DocumentStages){<option value="@stage" selected="@(ViewBag.Stage==stage)">@stage</option>}</select></label><button class="btn" type="submit">Filter</button></form>}
 @if(!Model.Any()){<div class="panel"><h2>No requests yet</h2><p class="muted">Requests appear here after a queue ticket or visit reservation is created.</p><a class="btn btn-soft" href="/Queue/GetTicket">Start a transaction</a></div>}
-<div class="ops-request-list">@foreach(var ticket in Model){<article class="panel ops-request-row"><div><span class="eyebrow">@ticket.Office</span><h2>@ticket.RequestType</h2><p class="muted">@ticket.TicketNumber · @ticket.CreatedAt.ToString("MMM d, yyyy")</p>@if(staff){<p>@ticket.CustomerName · @ticket.StudentNumber</p>}</div><div><span class="pill">@(ticket.DocumentStatus??ticket.Status)</span><p class="muted">Queue: @ticket.Status</p><a class="btn btn-soft" asp-action="Request" asp-route-id="@ticket.TicketNumber">Open request →</a></div></article>}</div>
+<div class="ops-request-list" id="request-results">@foreach(var ticket in Model){<article class="panel ops-request-row"><div><span class="eyebrow">@ticket.Office</span><h2>@ticket.RequestType</h2><p class="muted">@ticket.TicketNumber · @ticket.CreatedAt.ToString("MMM d, yyyy")</p>@if(staff){<p>@ticket.CustomerName · @ticket.StudentNumber</p>}</div><div><span class="pill">@(ticket.DocumentStatus??ticket.Status)</span>@if(attention.TryGetValue(ticket.TicketNumber,out var notice)&&!string.IsNullOrEmpty(notice)){<p class="submission-attention">@notice</p>}<p class="muted">Queue: @ticket.Status</p><a class="btn btn-soft" asp-action="Request" asp-route-id="@ticket.TicketNumber">Open request →</a></div></article>}</div>
 </div></section>
+
+@section Scripts { <script>
+const search=document.getElementById('request-search');
+search.addEventListener('input',()=>{let count=0;const query=search.value.trim().toLocaleLowerCase();document.querySelectorAll('.ops-request-row').forEach(row=>{row.hidden=!row.textContent.toLocaleLowerCase().includes(query);if(!row.hidden)count++;});document.getElementById('request-search-status').textContent=count+' matching requests';});
+</script> }

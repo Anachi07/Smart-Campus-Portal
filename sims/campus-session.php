@@ -10,6 +10,7 @@ $user = current_user();
 if (!$user || $user['status'] !== 'Active' || time() - ($_SESSION['last_activity'] ?? 0) > SESSION_TIMEOUT) {
     http_response_code(401); echo '{}'; exit;
 }
+if(campus_mode()==='production' && in_array($user['role'],['Admin','Super Admin'],true) && !scalar('SELECT COUNT(*) FROM account_mfa WHERE user_id=?',[$user['id']])){http_response_code(401);echo '{}';exit;}
 $_SESSION['last_activity'] = time();
 $phone = '';
 foreach (['students', 'teachers', 'parents'] as $table) {

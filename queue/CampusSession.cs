@@ -11,6 +11,7 @@ public class CampusSession
     public async Task InvokeAsync(HttpContext context, QueueStore store, IHttpClientFactory clients)
     {
         var path = context.Request.Path.Value ?? "/";
+        if(path.Equals("/Verify/Document",StringComparison.OrdinalIgnoreCase)){await _next(context);return;}
         if (path.StartsWith("/Auth", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.Redirect(path.Contains("Logout", StringComparison.OrdinalIgnoreCase)
@@ -22,6 +23,8 @@ public class CampusSession
             var expected = Environment.GetEnvironmentVariable("CAMPUS_INTERNAL_SECRET") ?? "";
             var supplied = context.Request.Headers["X-Campus-Secret"].ToString();
             if (context.Request.Method != "POST" || expected.Length == 0 || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(expected), System.Text.Encoding.UTF8.GetBytes(supplied))) { context.Response.StatusCode=404; return; }
+            var bodyLimit=context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+            if(bodyLimit is {IsReadOnly:false})bodyLimit.MaxRequestBodySize=34*1024*1024;
             try {
                 if (context.Request.Query["validate"] == "1") {
                     using var reader = new StreamReader(context.Request.Body);

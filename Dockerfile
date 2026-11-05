@@ -44,6 +44,7 @@ COPY --from=build /published ./queue/
 COPY queue/Data/ ./queue/Data/
 COPY sims/ ./sims/
 COPY scripts/ ./scripts/
+COPY public/ ./public/
 RUN useradd --create-home --uid 10001 campus \
     && mkdir -p /app/.runtime/sessions /app/data \
     && chown -R campus:campus /app

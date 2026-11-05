@@ -129,6 +129,57 @@ try {
  Console.WriteLine("PASS document lifecycle, immutable requirements, owner checklist, verified release, feedback, calendar exclusions, deduplicated reminders, reports, and reload");
 }finally{Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(operationsFolder,true);}
 
+var submissionFolder=Path.Combine(Path.GetTempPath(),"icas-submission-test-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(submissionFolder);
+try {
+ Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",submissionFolder);
+ var seed=new SmartQueueData{Users=new(){new(){Id=1,Username="admin",Role="Admin"},new(){Id=2,Username="campus:2",Role="Customer"},new(){Id=3,Username="campus:3",Role="Customer"}}};
+ var file=Path.Combine(submissionFolder,"smartqueue-data.json");File.WriteAllText(file,JsonSerializer.Serialize(seed));var store=new QueueStore(new FakeHost{ContentRootPath=submissionFolder});
+ Assert(store.SaveRequirement(new(){RequestType="Other Document",Title="QA submission",Required=true},1).ok,"Requirement must save");
+ var requirement=store.Requirements("Document Request","Other Document").Single().Id;
+ var number=store.CreateTicket("QA","09171111111","Document Request","Regular",2,"Other Document","QA-2").ticket!.TicketNumber;
+ var pdf=Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n");
+ Assert(!store.SubmitRequirement(number,requirement,0,3,"private.pdf",pdf).ok,"Other accounts cannot upload");
+ Assert(!store.SubmitRequirement(number,999,0,2,"private.pdf",pdf).ok,"Unknown checklist item cannot receive uploads");
+ Assert(!store.SubmitRequirement(number,requirement,0,2,"fake.png",pdf).ok,"Extension and signature must agree");
+ Assert(!store.SubmitRequirement(number,requirement,0,2,"file.pdf",new byte[QueueStore.MaxSubmissionBytes+1]).ok,"Oversize file must fail");
+ Assert(store.SubmitRequirement(number,requirement,0,2,"../../private.pdf",pdf).ok,"Owner can submit a valid PDF");
+ var first=store.GetSubmissions(number,2,false).Single();Assert(first.FileName=="private.pdf"&&first.Version==1,"Filenames must be sanitized");
+ Assert(!store.GetSubmissions(number,3,false).Any()&&store.DownloadSubmission(first.Id,3,false)==null,"Metadata and bytes remain private");
+ Assert(store.DownloadSubmission(first.Id,2,false)!.Value.bytes.SequenceEqual(pdf),"Owner download must match original bytes");
+ Assert(!store.VerifyChecklist(number,new(){requirement},1).ok,"Manual verification cannot bypass pending upload review");
+ Assert(!store.ReviewSubmission(number,first.Id,1,"accept","",2).ok,"Requester cannot review their submission");
+ Assert(!store.ReviewSubmission(number,first.Id,1,"return","",1).ok,"Correction reason is mandatory");
+ Assert(store.ReviewSubmission(number,first.Id,1,"return","Please provide a clear scan.",1).ok,"Office can return a file");
+ Assert(!store.SubmitRequirement(number,requirement,0,2,"private.pdf",pdf).ok,"Stale upload cannot overwrite a newer version");
+ var uploads=await Task.WhenAll(Task.Run(()=>store.SubmitRequirement(number,requirement,1,2,"corrected.pdf",pdf)),Task.Run(()=>store.SubmitRequirement(number,requirement,1,2,"corrected.pdf",pdf)));
+ Assert(uploads.Count(r=>r.ok)==1,"Only one concurrent submission can use a version");
+ var second=store.GetSubmissions(number,2,false).First();
+ Assert(!store.ReviewSubmission(number,first.Id,1,"accept","",1).ok,"Old versions cannot be reviewed");
+ Assert(store.ReviewSubmission(number,second.Id,2,"accept","Legible copy.",1).ok,"Latest upload can be accepted");
+ Assert(store.SubmitRequirement(number,requirement,2,2,"replacement.pdf",pdf).ok,"Owner may replace an accepted file before readiness");
+ Assert(!store.Snapshot().Tickets.Single(t=>t.TicketNumber==number).Checklist.Single().Verified,"Replacement must revoke old verification");
+ Assert(store.AdvanceDocument(number,"Processing","Review started",1).ok,"Processing must start");
+ Assert(!store.AdvanceDocument(number,"Ready for pickup","",1).ok,"Pending replacement blocks readiness");
+ var latest=store.GetSubmissions(number,2,false).First();Assert(store.ReviewSubmission(number,latest.Id,3,"accept","",1).ok,"New version accepted");
+ Assert(store.AdvanceDocument(number,"Ready for pickup","Collect at Registrar",1).ok,"Accepted required files enable readiness");
+ Assert(!store.SubmitRequirement(number,requirement,3,2,"late.pdf",pdf).ok,"Ready requests cannot be altered");
+ var archive=JsonSerializer.Serialize(store.Snapshot());QueueStore.ValidateBackup(archive);store.Reload();
+ Assert(store.DownloadSubmission(first.Id,2,false)!.Value.bytes.SequenceEqual(pdf)&&store.GetSubmissions(number,2,false).Count==3,"Files and review history survive reload");
+ var broken=JsonSerializer.Deserialize<SmartQueueData>(archive)!;broken.RequirementSubmissions[0].Sha256="tampered";
+ var rejected=false;try{QueueStore.ValidateBackup(JsonSerializer.Serialize(broken));}catch(InvalidDataException){rejected=true;}Assert(rejected,"Backup hash tampering must be rejected");
+ broken=JsonSerializer.Deserialize<SmartQueueData>(archive)!;broken.RequirementSubmissions[1].Version=1;
+ rejected=false;try{QueueStore.ValidateBackup(JsonSerializer.Serialize(broken));}catch(InvalidDataException){rejected=true;}Assert(rejected,"Duplicate versions cannot restore");
+ Assert(!store.RegisterIssuedDocument(number,2,"issued.pdf",pdf).ok,"Students cannot register issued documents");
+ Assert(store.RegisterIssuedDocument(number,1,"issued.pdf",pdf).ok,"Office can register final PDF");var issued=store.IssuedDocuments(number,2,false).Single();
+ Assert(store.VerifyIssuedDocument(issued.Code) is {RevokedAt:null},"Public registry lookup must project an active entry");
+ Assert(store.DownloadIssuedDocument(issued.Id,3,false)==null&&store.DownloadIssuedDocument(issued.Id,2,false)!.Value.bytes.SequenceEqual(pdf),"Issued PDF downloads enforce ownership");
+ Assert(!store.RegisterIssuedDocument(number,1,"duplicate.pdf",pdf).ok,"Duplicate active issuance is blocked");
+ Assert(store.RevokeIssuedDocument(issued.Id,1,"QA correction needed").ok&&store.VerifyIssuedDocument(issued.Code)!.RevokedAt.HasValue,"Revocation remains visible publicly");
+ QueueStore.ValidateBackup(JsonSerializer.Serialize(store.Snapshot()));store.Reload();Assert(store.VerifyIssuedDocument(issued.Code)!.RevokedAt.HasValue,"Issued file and revocation survive reload");
+ Console.WriteLine("PASS issued PDF authorization, registry projection, private download, active-record uniqueness, revocation, and backup/reload");
+ Console.WriteLine("PASS private uploads, signature/size validation, correction reasons, concurrent versions, staff review, readiness gates, file integrity, and reload");
+}finally{Environment.SetEnvironmentVariable("CAMPUS_QUEUE_DATA_DIR",oldData);Directory.Delete(submissionFolder,true);}
+
 class FakeClients:IHttpClientFactory {
  public int Calls;public string Provider="gemini",ModelText="";public Uri? Url;public string? Body;public bool HasCredential;
  public HttpClient CreateClient(string name)=>new(new FakeHandler(async request=>{Calls++;Url=request.RequestUri;Body=await request.Content!.ReadAsStringAsync();HasCredential=request.Headers.Contains("x-goog-api-key")||request.Headers.Authorization?.Scheme=="Bearer";object payload=Provider=="gemini"?new{candidates=new[]{new{content=new{parts=new[]{new{text=ModelText}}}}}}:new{choices=new[]{new{message=new{content=ModelText}}}};return new HttpResponseMessage(HttpStatusCode.OK){Content=new StringContent(JsonSerializer.Serialize(payload),Encoding.UTF8,"application/json")};}));

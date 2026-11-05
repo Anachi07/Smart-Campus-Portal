@@ -33,6 +33,8 @@ public partial class QueueStore
         if(data.OfficeClosures.Any(c=>c==null||!Offices.Contains(c.Office)||string.IsNullOrWhiteSpace(c.Title)||c.Title.Length>120||c.Weekday.HasValue&&(c.Weekday<0||c.Weekday>6)||!c.AllDay&&(!Clock(c.StartTime,out var start)||!Clock(c.EndTime,out var end)||start>=end)))throw new InvalidDataException("Invalid office calendar.");
         if(data.Feedback.Any(f=>f==null||f.Rating<1||f.Rating>5||(f.Comment?.Length??0)>500||!data.Tickets.Any(t=>t.TicketNumber==f.TicketNumber&&t.CustomerUserId==f.UserId))||data.Feedback.Select(f=>f.TicketNumber).Distinct().Count()!=data.Feedback.Count)throw new InvalidDataException("Invalid transaction feedback.");
         if(data.Tickets.Any(t=>t.Checklist==null||t.DocumentHistory==null||t.DocumentStatus!=null&&!DocumentStages.Contains(t.DocumentStatus)||t.Checklist.Any(c=>c==null)||t.DocumentStatus is "Ready for pickup" or "Released"&&string.IsNullOrWhiteSpace(t.ClaimCode)))throw new InvalidDataException("Invalid document request data.");
+        ValidateSubmissionsBackup(data);
+        ValidateIssuedDocuments(data);
     }
     public List<ServiceRequirement> Requirements(string service,string type) {lock(_lock)return _data.ServiceRequirements.Where(r=>r.Active&&r.ServiceType==service&&r.RequestType==type).Select(r=>new ServiceRequirement{Id=r.Id,ServiceType=r.ServiceType,RequestType=r.RequestType,Title=r.Title,Instructions=r.Instructions??"",Required=r.Required,Active=r.Active}).ToList();}
     public (bool ok,string message) SaveRequirement(ServiceRequirement input,int staffId) {
@@ -62,6 +64,7 @@ public partial class QueueStore
             if(ticket==null)return(false,"Request not found.");
             if(ChecklistClosed(ticket)||ticket.DocumentStatus=="Ready for pickup")return(false,"Verification is closed for this request.");
             if(verified.Any(id=>!ticket.Checklist.Any(c=>c.RequirementId==id)))return(false,"Select valid checklist items.");
+            if(verified.Any(id=>LatestSubmission(number,id) is {Status:not "Accepted"}))return(false,"Review and accept the latest uploaded version before verifying its requirement.");
             foreach(var item in ticket.Checklist)item.Verified=verified.Contains(item.RequirementId);
             AddLog("Requirements verified",$"Staff #{staffId} reviewed checklist for {ticket.TicketNumber}.");Save();return(true,"Office verification saved.");
         }
@@ -74,7 +77,7 @@ public partial class QueueStore
             if((note?.Length??0)>600)return(false,"Keep the public progress note within 600 characters.");
             var current=Array.IndexOf(DocumentStages,ticket.DocumentStatus??"For review");
             if(current<0||current==DocumentStages.Length-1||DocumentStages[current+1]!=stage)return(false,"Follow the document stages in order. Released documents cannot be reopened here.");
-            if(stage=="Ready for pickup"&&ticket.Checklist.Any(c=>c.Required&&!c.Verified))return(false,"Verify every required checklist item before marking the document ready.");
+            if(stage=="Ready for pickup"&&ticket.Checklist.Any(c=>c.Required&&(!c.Verified||LatestSubmission(number,c.RequirementId) is {Status:not "Accepted"})))return(false,"Verify every required checklist item before marking the document ready.");
             if(stage=="Released"&&string.IsNullOrWhiteSpace(note))return(false,"Enter a release confirmation note after checking the recipient's identity in person.");
             if(stage=="Ready for pickup"&&string.IsNullOrEmpty(ticket.ClaimCode))ticket.ClaimCode="ICAS-"+Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
             if(stage=="Released"&&ticket.Status is "Waiting" or "Now Serving") {

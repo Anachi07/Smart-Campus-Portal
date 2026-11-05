@@ -94,3 +94,61 @@ Coverage includes regular Admin access denial, pending-account approval/rejectio
 ## Complete campus service workflow
 
 Document requests now have staged tracking and private printable claim stubs. School-managed requirements appear before a transaction and become a request checklist, with separate student-prepared and office-verified flags. In-app reminders, office holidays/weekly breaks, private transaction feedback, and filterable service reports with summary CSV exports are integrated with the queue and booking engine. See [CAMPUS_SERVICES.md](CAMPUS_SERVICES.md) for the staff workflow, notification limits, and validation commands. Office requirements and closures must be entered by the school; none are assumed official by default.
+
+## Live campus experience and installable app
+
+- The public queue display and private ticket tracker update every five seconds
+  while visible, without full-page refreshes. Connection status makes stale data
+  visible. Public updates contain queue information only; private endpoints enforce
+  the same account ownership and staff access as their pages.
+- My service requests includes a request overview and instant search. Individual
+  requests show the next step, preparation progress, and live document history.
+  Live changes do not overwrite editable forms; refresh explicitly to load updated
+  verification checklists and newly available actions.
+- Install the campus app using the install button or the browser's home-screen menu
+  on HTTPS. The offline screen contains no private records. Browser alerts are
+  opt-in, contain generic text, and work while the portal is open and visible.
+  Background push, online payments, and official document generation are not
+  included. Private requirement uploads and the office correction workflow are
+  documented in [CAMPUS_SERVICES.md](CAMPUS_SERVICES.md#private-requirement-uploads-and-corrections).
+
+Additional checks against disposable demo data:
+
+```sh
+CAMPUS_TEST_URL=http://127.0.0.1:8080 python3 scripts/live-features-test.py
+CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_CHROMIUM=/usr/bin/chromium node scripts/live-browser.cjs
+```
+
+Run destructive service suites on a fresh, separate `CAMPUS_DATA_DIR` before the
+smoke/live suite creates active tickets. Each suite needs exclusive use of its test
+database; do not run backup/restore suites concurrently with other app tests.
+
+## Connected campus workflows
+
+The overview now brings together attention items, office requests, a transaction
+timeline, classes, visits, and office notices. New sidebar workflows include digital
+clearance, assigned-office helpdesk, sequential school forms, targeted announcements,
+rotating class QR check-in, staff workload, and authenticator MFA. Office staff can
+register and revoke final issued PDFs with private downloads and a public fingerprint
+verification QR. The launcher also starts scheduled private local backups.
+
+See [CAMPUS_PLATFORM.md](CAMPUS_PLATFORM.md) for configuration, permissions, demo
+policies, MFA recovery, backup retention, and verification commands. Free Render
+remains ephemeral: download a full backup before redeploying; local scheduled copies
+are not durable or off-site storage.
+
+## Enrollment checklist
+
+Students can now track school-published enrollment requirements, preparation,
+corrections, and office verification. Parents have linked-student read access;
+assigned office staff review requirements. Super Admin publishes the real school
+requirements. A verified checklist does not confirm enrollment or payment.
+See [ENROLLMENT.md](ENROLLMENT.md) for setup, scope, and tests.
+
+## School course catalog and facilities
+
+Offered courses are HRS, IT, BSHM, and BSIT; IT and BSIT are separate programs.
+Historical demo assignments are preserved rather than silently reassigned. The new
+Facility reservations module supports school-configured rooms, labs, and equipment,
+time conflicts, office review, cancellations, a private request history, and a daily
+availability calendar. See [FACILITIES.md](FACILITIES.md) for setup and scope.

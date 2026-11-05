@@ -24,7 +24,7 @@ The **claim stub** becomes available at Ready for pickup. It is printable and vi
 
 The school publishes approved requirements per service and transaction type. No official requirements are invented or seeded. Until requirements are configured, students are asked to confirm with the office.
 
-Requirements appear before both a walk-in ticket and an assistant booking. A request snapshots the requirements at creation. Editing or archiving a definition affects future requests and preserves existing checklists. Students can mark their own items prepared; this does not mark them office-verified. Staff separately verify actual submissions. This release tracks readiness flags and instructions; it does not upload or validate identity documents.
+Requirements appear before both a walk-in ticket and an assistant booking. A request snapshots the requirements at creation. Editing or archiving a definition affects future requests and preserves existing checklists. Students can mark their own items prepared; this does not mark them office-verified. Staff separately verify actual submissions. Document Request checklist items also support private file submissions and office corrections, described below. Uploading a file does not authenticate a student or approve an official document.
 
 ## Office calendar
 
@@ -64,3 +64,61 @@ CAMPUS_TEST_URL=http://127.0.0.1:18080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_C
 ```
 
 Checks cover ownership and office permissions, document transitions, verified requirements, private claims, feedback eligibility/deduplication, office/date isolation, late-closure changes, reminder deduplication, actual wait calculations, escaped feedback, summary exports, storage round trips, and desktop/mobile flows. Existing account, queue, assistant, and exchange regression suites remain applicable.
+
+## Private requirement uploads and corrections
+
+For Document Request tickets with school-managed checklist items, requesters can
+submit PDF, PNG, or JPEG files, up to 2 MB per file. The server checks extension,
+file signatures, size, filename, and ownership; submitted browser MIME types are
+not trusted. These container checks are not antivirus scanning. Files download as
+attachments with `nosniff`, a sandbox policy, and `no-store`; they are never served
+from a public upload directory or cached by the PWA.
+
+The latest submission starts **Pending review**. Office staff download and inspect
+it, then **Accept requirement** or **Return for correction**. Returning requires a
+requester-visible explanation of 5–600 characters. Acceptance verifies that
+checklist item, not the whole document or release. Pending/returned uploads cannot
+be bypassed through manual checklist verification. Required items must be verified
+and their latest uploaded versions accepted before Ready for pickup.
+
+A requester can submit a replacement while the request remains open. This resets
+verification and requires a new review, even if a previous version was accepted.
+The request stores five versions per requirement, including their timestamps,
+review status, and correction notes. Older versions remain private and downloadable
+but cannot receive new decisions. Concurrent/stale submissions and reviews cannot
+overwrite a newer version. Uploads and reviews close at Ready for pickup or Released,
+and for unstarted cancelled/expired/skipped requests. A document already being
+processed can continue independently of a cancelled queue visit.
+
+Request lists show files waiting for review or corrections needed. Uploads, reviews,
+and downloads also write account IDs and version numbers to the existing activity
+log, without copying file contents into logs. Review results send private in-app
+notifications; phone, SMS, email, and background push delivery are not configured.
+
+For the bounded free demo, file bytes and metadata are retained in the private queue
+JSON with SHA-256 integrity checks, with an 8 MB aggregate raw-file quota and at most
+500 retained versions. This keeps files, reviews, and academic records in the same
+existing paired backup/restore transaction. Full backup restores accept up to 32 MB;
+invalid hashes, file types, version histories, and verification states are rejected
+before replacement. Previous v1 backups without uploads remain supported. Safety
+copies also contain the files: keep them private.
+
+Free hosting remains ephemeral. Production use still needs durable private storage,
+retention/deletion policies, malware scanning, and an operational backup schedule;
+this update does not provision those external services. Accepting a submitted requirement does not generate or authenticate an official
+academic document. Final issued PDFs can be separately registered and verified as
+described in [CAMPUS_PLATFORM.md](CAMPUS_PLATFORM.md#issued-document-verification).
+
+Additional validation, using fresh disposable data exclusively:
+
+```sh
+CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_TEST_URL=http://127.0.0.1:8080 python3 scripts/submission-test.py
+CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_CHROMIUM=/usr/bin/chromium node scripts/submission-browser.cjs
+```
+
+These suites restore the original test workspace and revoke its sessions. Run them
+sequentially before smoke suites create active tickets. Coverage includes requester
+and staff permissions, CSRF, invalid/oversize files, correction resubmission, stale
+reviews, verification reset, release gates, private downloads, mobile layout,
+uncached file data, and a complete backup round-trip larger than the former 10 MB
+restore limit. The .NET checks also exercise simultaneous submission races.

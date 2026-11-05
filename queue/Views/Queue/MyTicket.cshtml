@@ -33,12 +33,12 @@
 
     @if (Model.Results.Any())
     {
-        <div class="cards-list">
+        <p class="live-status" role="status" data-live-status>Connecting to live ticket updates…</p><div class="cards-list" data-live-tickets>
             @foreach (var ticket in Model.Results)
             {
-                <article class="ticket-card reveal-up">
+                <article class="ticket-card reveal-up" data-live-ticket="@ticket.TicketNumber">
                     <div>
-                        <span class="pill status-@QueueStore.StatusCss(ticket.Status)">@ticket.Status • @ticket.EstimatedWaitText</span>
+                        <span data-ticket-status class="pill status-@QueueStore.StatusCss(ticket.Status)">@ticket.Status • @ticket.EstimatedWaitText</span>
                         <h2>@ticket.TicketNumber</h2>
                         <a class="btn btn-soft" href="/Services/Request?id=@Uri.EscapeDataString(ticket.TicketNumber)">Requirements & progress →</a>
                         <p>@ticket.CustomerName • @QueueStore.MaskPhone(ticket.PhoneNumber)</p>
@@ -48,8 +48,8 @@
                         @if(ticket.ScheduledAt.HasValue){<span>Visit <strong>@ticket.ScheduledAt.Value.ToString("MMM dd, yyyy hh:mm tt") · Manila</strong></span>}
                         <span>Office <strong>@ticket.Office</strong></span><span>Request <strong>@ticket.RequestType</strong></span><span>Student / Ref. <strong>@ticket.StudentNumber</strong></span>
                         <span>Priority <strong>@ticket.PriorityType</strong></span>
-                        <span>Counter <strong>@(string.IsNullOrWhiteSpace(ticket.CounterName) ? (string.IsNullOrWhiteSpace(ticket.PredictedCounterName) ? "Waiting" : ticket.PredictedCounterName) : ticket.CounterName)</strong></span>
-                        <span>Estimated Call <strong>@(ticket.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating")</strong></span>
+                        <span>Counter <strong data-ticket-counter>@(string.IsNullOrWhiteSpace(ticket.CounterName) ? (string.IsNullOrWhiteSpace(ticket.PredictedCounterName) ? "Waiting" : ticket.PredictedCounterName) : ticket.CounterName)</strong></span>
+                        <span>Estimated Call <strong data-ticket-call>@(ticket.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating")</strong></span>
                         <span>Best Time <strong>@ticket.BestVisitTime</strong></span>
                         <span>Created <strong>@ticket.CreatedAt.ToString("g")</strong></span>
                     </div>
@@ -59,6 +59,4 @@
     }
 </section>
 
-@section Scripts {
-<script>setInterval(()=>{if(!document.hidden && !window.ICASAssistant?.isOpen && !['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName)) window.location.reload();},15000);</script>
-}
+@section Scripts { <script src="~/js/live-queue.js" asp-append-version="true"></script> }

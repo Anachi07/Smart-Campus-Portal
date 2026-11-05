@@ -93,6 +93,21 @@ public class QueueController : Controller
         return View(model);
     }
 
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public IActionResult LiveTickets(string? searchText)
+    {
+        if (HttpContext.Session.GetInt32("UserId") == null) return Unauthorized();
+        var tickets = string.IsNullOrWhiteSpace(searchText)
+            ? _store.Snapshot().Tickets.Where(CanView).OrderByDescending(t => t.CreatedAt).Take(25)
+            : _store.SearchTickets(searchText).Where(CanView);
+        return Json(tickets.Select(t => new {
+            t.TicketNumber, t.Status, t.EstimatedWaitText, t.DocumentStatus,
+            counter = string.IsNullOrWhiteSpace(t.CounterName) ? t.PredictedCounterName : t.CounterName,
+            estimatedCall = t.EstimatedServiceStartAt?.ToString("hh:mm tt") ?? "Calculating"
+        }));
+    }
+
     private bool CanView(Ticket ticket) => HttpContext.Session.GetString("Role") is "Admin" or "Staff" || ticket.CustomerUserId == HttpContext.Session.GetInt32("UserId");
 
     [HttpGet]
