@@ -23,3 +23,9 @@ CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 node scri
 ```
 
 Tests cover permissions, CSRF, draft source privacy, publish completeness, escaped copy, ordered steps, atomic validation, backup restore, compatibility, unpublishing and public layouts at 320/390/768/1440px. Test examples are restored afterward and never become production school policy.
+
+## Supplied admission poster
+
+The project owner supplied a school poster headed “Admission Open for 2026–2027,” with Sucat campus identification. The default public admission announcement quotes that claim and directs visitors to confirm current schedules; it does not assert that admissions are still open today. Admin can edit or clear this independent public notice in School settings. Clearing it hides the notice. Existing saved notice values are preserved.
+
+The poster does not supply official requirements or enrollment steps, so their separate Draft/Published workflow is unchanged. It labels the college block “Marcos Hi-way”; those program promotions, free-tuition/no-exam claims and difficult-to-read contact details are not copied as Sucat-specific facts. The four existing course codes remain based on the owner's earlier explicit instructions. No tuition amounts, application procedure or admissions deadlines are inferred.

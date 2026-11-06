@@ -17,6 +17,7 @@ function public_school_fields(): array {
         'school_office_hours'=>['Office hours',300,'textarea',''],
         'school_hrs_name'=>['Full program name for HRS',120,'text',''],
         'school_it_name'=>['Full program name for IT',120,'text',''],
+        'school_admissions_notice'=>['Public admission announcement',1500,'textarea','The school’s poster announces “Admission Open for 2026–2027” for Sucat campus. Contact the school to confirm current enrollment schedules, requirements and steps.'],
         'school_admissions_status'=>['Enrollment information status',9,'select','Draft'],
         'school_admissions_new'=>['New student requirements (one per line)',3000,'textarea',''],
         'school_admissions_transferee'=>['Transferee requirements (one per line)',3000,'textarea',''],

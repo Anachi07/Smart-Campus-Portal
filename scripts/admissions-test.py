@@ -53,6 +53,9 @@ try:
     student=login('2024-0001','student123');student.request(path,expected=403)
     owner.form(path,fields,expected=419,csrf=False)
     save();home=public.request('/')[1].decode();assert 'id="enrollment"' not in home and 'QA original document' not in home
+    assert 'Admission Open for 2026–2027' in home
+    save(**{'settings[school_admissions_notice]':'QA public notice <script>unsafe</script>'});home=public.request('/')[1].decode();assert 'QA public notice &lt;script&gt;unsafe&lt;/script&gt;' in home
+    save(**{'settings[school_admissions_notice]':''});assert 'admission-notice-title' not in public.request('/')[1].decode()
     rejected=save(**{'settings[school_admissions_status]':'Published','settings[school_admissions_steps]':''})
     assert b'Before publishing' in rejected[1] and 'QA original document' not in public.request('/')[1].decode()
     save(**{'settings[school_admissions_status]':'Published'});home=public.request('/')[1].decode()

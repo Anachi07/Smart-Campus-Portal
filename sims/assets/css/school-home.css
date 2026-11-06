@@ -32,3 +32,6 @@
 .school-enrollment-steps{padding-top:28px;border-top:1px solid #b7c4b6;margin-bottom:28px}
 .school-enrollment-notes{margin-block:28px}.school-enrollment-notes p{line-height:1.8}
 @media(max-width:640px){.school-enrollment{padding-block:42px}.school-requirements{grid-template-columns:minmax(0,1fr);gap:30px}.school-enrollment h3{font-size:23px}.school-enrollment li{font-size:14px}}
+.school-admission-notice{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:48px;padding-block:40px;border-bottom:1px solid #d7ded5}
+.school-admission-notice p:not(.school-label){line-height:1.8;margin:0 0 16px;color:#536354}
+@media(max-width:640px){.school-admission-notice{grid-template-columns:minmax(0,1fr);gap:20px;padding-block:32px}}
