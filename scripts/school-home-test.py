@@ -54,9 +54,10 @@ try:
     assert 'Infotech College of Arts and Sciences (ICAS)' in home and 'Sucat branch' in home
     assert all('>'+code+'</h3>' in home for code in ['HRS','IT','BSHM','BSIT'])
     assert 'Learning connected' not in home and 'portal-preview' not in home
-    assert 'Our mission' not in home and 'Campus address' not in home
+    assert 'Our mission' not in home
+    assert '8347 CAP Building' in home and '0995-922-2204' in home and 'facebook.com/icasparanaque' in home
     owner.form(path,{'settings[school_public_name]':'Forbidden without CSRF'},expected=419,csrf=False)
-    valid={'settings[school_name]':'ICAS Philippines','settings[academic_year]':'2026-2027','settings[school_public_name]':'Infotech College of Arts and Sciences (ICAS)','settings[school_branch]':'Sucat branch','settings[school_about]':'QA approved school description <script>unsafe</script>','settings[school_mission]':'QA approved mission','settings[school_vision]':'QA approved vision','settings[school_address]':'QA campus address\nSecond address line','settings[school_email]':'office@example.test','settings[school_phone]':'QA public number','settings[school_facebook]':'https://www.facebook.com/example-school','settings[school_website]':'https://example.test','settings[school_office_hours]':'QA office hours','settings[school_hrs_name]':'QA HRS official title','settings[school_it_name]':'QA IT official title'}
+    valid={'settings[school_name]':'ICAS Philippines','settings[academic_year]':'2026-2027','settings[school_public_name]':'Infotech College of Arts and Sciences (ICAS)','settings[school_branch]':'Sucat branch','settings[school_about]':'QA approved school description <script>unsafe</script>','settings[school_mission]':'QA approved mission','settings[school_vision]':'QA approved vision','settings[school_address]':'QA campus address\nSecond address line','settings[school_email]':'office@example.test','settings[school_mobile]':'0995-000-0000','settings[school_phone]':'QA public number','settings[school_facebook]':'https://www.facebook.com/example-school','settings[school_website]':'https://example.test','settings[school_office_hours]':'QA office hours','settings[school_hrs_name]':'QA HRS official title','settings[school_it_name]':'QA IT official title'}
     page_post(owner,path,valid);home=public.request('/')[1].decode()
     assert 'QA approved school description &lt;script&gt;unsafe&lt;/script&gt;' in home and '<script>unsafe</script>' not in home
     assert 'QA campus address\nSecond address line' in home and 'mailto:office@example.test' in home

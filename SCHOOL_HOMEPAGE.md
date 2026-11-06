@@ -25,3 +25,9 @@ CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 python3 s
 ```
 
 It verifies the confirmed identity and four courses, public text escaping, contact URL/email validation, blank-field hiding, Admin permissions, CSRF and compatibility with basic settings clients.
+
+## Confirmed Sucat contacts
+
+The owner supplied the contact/location information used by the homepage: 8347 CAP Building, Dr. A. Santos Ave. (Sucat), Brgy. San Antonio, Parañaque City (in front of Nissan Sucat); telephone (02) 7-717-2982, 825-6531 or 473-4349; mobile/inquiries 0995-922-2204. The Sucat Facebook URL follows the supplied poster, https://www.facebook.com/icasparanaque. Mobile has a tap-to-call link; multiple landlines remain readable text. No office hours or email were inferred.
+
+A versioned, atomic one-time settings initializer fills missing/blank contact fields on existing databases, preserving nonblank admin edits. Later edits or clears remain unchanged because the initializer records completion. Restoring an archive from before this contact profile applies the same backfill once. scripts/contact-profile-check.php verifies fill/preservation/clear behavior with an in-memory SQLite database; school-home-test.py verifies public rendering and editing.
