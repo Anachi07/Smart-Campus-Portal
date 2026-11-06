@@ -1,6 +1,6 @@
 # Campus photos and loading logo
 
-Admin/Super Admin opens **School settings → Campus photos** to upload the original reception, entrance and campus grounds photos. Choose JPG/PNG files under 750 KB each, up to 4000 × 4000 pixels. Captions are editable. Saving publishes the selected photos; leaving a file field blank keeps its current image, while Remove deletes that photo. The public hero uses the entrance photo when available, then the first uploaded photo. A gallery displays all available photos. Image containers use `object-fit: contain`, with a single-column phone layout so the original images are not cropped.
+Admin/Super Admin opens **School settings → Campus photos** to upload the original reception, entrance and campus grounds photos. Choose JPG/PNG files under 750 KB each, up to 4000 × 4000 pixels. Captions are editable. Saving publishes the selected photos; leaving a file field blank keeps its current image, while Remove deletes that photo. The public hero always shows the ICAS logo, as requested by the owner; uploaded campus photos never replace it. A gallery displays all available photos. Image containers use `object-fit: contain`, with a single-column phone layout so the original images are not cropped.
 
 No campus photographs are fabricated or seeded. In this session the three original photographs were visible as chat previews but were not exposed as downloadable files or local attachments. They still need to be supplied as downloadable originals (a ZIP works) or uploaded through School settings. Tests use temporary logo fixtures only on disposable data and restore the original backup afterward.
 
@@ -19,4 +19,4 @@ CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 python3 s
 CAMPUS_TEST_URL=http://127.0.0.1:8080 CAMPUS_ALLOW_DESTRUCTIVE_TESTS=1 node scripts/gallery-loading-browser.cjs
 ```
 
-Checks include upload/oversize/type validation, caption escaping, gallery/hero selection, backup/restore, removal, phone/tablet/desktop layouts, slow-load pulse behavior, reduced motion, timeout and no-JavaScript fallback. These do not claim native OS splash animation support.
+Checks include upload/oversize/type validation, caption escaping, gallery display and fixed hero logo, backup/restore, removal, phone/tablet/desktop layouts, slow-load pulse behavior, reduced motion, timeout and no-JavaScript fallback. These do not claim native OS splash animation support.
