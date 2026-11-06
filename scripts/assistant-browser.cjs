@@ -11,8 +11,12 @@ const base=process.env.CAMPUS_TEST_URL||'http://127.0.0.1:18080';
   if(await page.locator('#password').getAttribute('type')!=='password')throw Error('Password must remain masked');
   await capture('clean-login');
   await page.getByRole('button',{name:'Open ICAS Assistant'}).click();
+  await page.getByRole('button',{name:'Courses',exact:true}).click();await page.locator('.assistant-message.assistant').filter({hasText:'Mga programang inaalok:'}).first().waitFor();
+  await page.getByRole('button',{name:'Campus location',exact:true}).click();await page.locator('.assistant-message.assistant').filter({hasText:'8347 CAP Building'}).first().waitFor();
+  await page.getByRole('button',{name:'Contact school',exact:true}).click();await page.locator('.assistant-message.assistant').filter({hasText:'0995-922-2204'}).first().waitFor();
+
   await page.getByLabel('Your school question').fill('How do I request school documents?');await page.getByRole('button',{name:'Send question'}).click();
-  await page.locator('.assistant-mode').filter({hasText:'School guide'}).waitFor();
+  await page.locator('.assistant-message.assistant').filter({hasText:'The Registrar verifies eligibility'}).first().waitFor();
   const previous=chatCalls;await page.getByLabel('Your school question').fill('my password is private-browser-fixture');await page.getByRole('button',{name:'Send question'}).click();
   await page.getByText('Please do not share passwords or access keys here.',{exact:false}).waitFor();if(chatCalls!==previous||await page.locator('.assistant-messages').innerText().then(t=>t.includes('private-browser-fixture')))throw Error('Secret-like text was forwarded or displayed');
   await capture('school-guide');

@@ -19,6 +19,8 @@ The public homepage presents **Infotech College of Arts and Sciences (ICAS), Suc
 
 - [Public enrollment information](ADMISSIONS.md): admin-reviewed requirements and enrollment steps, with private drafts and explicit publishing to the homepage.
 
+School FAQ answers are available inside **Ask ICAS**, using current public settings and published enrollment information. See [CHATBOT_FAQS.md](CHATBOT_FAQS.md).
+
 ## Run locally
 
 Requires .NET 8 SDK, PHP 8.2+ with PDO/SQLite, and Node.js 18+.

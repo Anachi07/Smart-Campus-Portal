@@ -17,7 +17,7 @@
   let data;try{data=await response.json();}catch{throw Error('The assistant is temporarily unavailable. Please try again.');}
   if(!response.ok)throw Error(data.message||'Unable to complete this request. Please try again.');return data;
  }
- function quickActions(container=messages){const actions=make('div','assistant-quick-actions');actions.append(button('Find a visit time',()=>schedule()),button('My requests',()=>bookings()),button('Exchange requests',()=>exchanges()),button('School services',()=>ask('What can the campus portal do?')));container.append(actions);scroll();}
+ function quickActions(container=messages){const actions=make('div','assistant-quick-actions');actions.append(button('Enrollment',()=>ask('Paano mag enroll?')),button('Courses',()=>ask('Anong courses ang offered?')),button('Campus location',()=>ask('Saan ang ICAS Sucat?')),button('Contact school',()=>ask('Contact details ng ICAS Sucat?')),button('Account help',()=>ask('How can I change or recover my password?')),button('Find a visit time',()=>schedule()),button('My requests',()=>bookings()),button('Exchange requests',()=>exchanges()),button('School services',()=>ask('What can the campus portal do?')));container.append(actions);scroll();}
  async function ready(){if(!context)context=await api('Context');return context;}
  function signIn(){const box=message('Sign in with your campus account to reserve a time or view your own requests.');const link=make('a','assistant-button','Sign in to continue');link.href='/sims/login.php';box.append(link);scroll();}
  async function open(action='open'){

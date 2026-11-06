@@ -2,6 +2,7 @@
 $secret=getenv('CAMPUS_INTERNAL_SECRET');
 if(!$secret || !hash_equals($secret,$_SERVER['HTTP_X_CAMPUS_SECRET']??'')) { http_response_code(404); exit; }
 require_once __DIR__.'/bootstrap.php';
+require_once __DIR__.'/includes/assistant-school-faqs.php';
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 $defaults=[
  ['id'=>-1,'question'=>'What can the ICAS campus portal do?','answer'=>'The portal provides academic records, grades, attendance, class schedules, school announcements, and Registrar/Cashier queue services. Access depends on your signed-in role.','sourceLabel'=>'Campus portal services'],
@@ -9,7 +10,7 @@ $defaults=[
  ['id'=>-3,'question'=>'How do tuition and school fee payments work? Paano magbayad?','answer'=>'Choose Tuition Payment or School Fees to join the Cashier queue. Confirm the amount, accepted payment method, and official receipt with the school Cashier. This portal does not charge money or issue official receipts.','sourceLabel'=>'Cashier queue workflow'],
  ['id'=>-6,'question'=>'How do I track document requests requirements claim stubs feedback and office closures?','answer'=>'Open My service requests to see the preparation checklist and document progress: For review, Processing, Ready for pickup, and Released. The Registrar verifies requirements and release. A claim stub becomes available when the document is ready; it is not an academic document or receipt. Check Office calendar for published closures. In-app visit and queue reminders appear while the service is running. Feedback opens after a completed transaction; documents must be released first.','sourceLabel'=>'Campus service tracking workflow'],
  ['id'=>-5,'question'=>'Who approves new accounts? Why is my registration pending? Super Admin account approval','answer'=>'New student registrations stay Pending until a Super Admin approves them. Only the Super Admin can create campus accounts, assign roles, approve or reject registrations, and reset another user’s password. Regular Admin handles academic and office operations. Contact the school to review pending access; the assistant cannot approve accounts.','sourceLabel'=>'Campus account approval workflow'],
- ['id'=>-4,'question'=>'How can I change or recover my password? Account login tulong','answer'=>'Change your password in My profile after signing in. If you cannot sign in, ask the school Super Admin to reset access. Never share passwords in the assistant or a queue request.','sourceLabel'=>'Account help']
+ ['id'=>-4,'question'=>'How can I change reset or recover my password? Nakalimutan password ireset account login tulong','answer'=>'Change your password in My profile after signing in. If you cannot sign in, ask the school Super Admin to reset access. Never share passwords in the assistant or a queue request.','sourceLabel'=>'Account help']
 ];
 $published=rows('SELECT id,question,answer,source_label AS sourceLabel FROM school_faqs WHERE published=1 ORDER BY id LIMIT 200');
-echo json_encode(['schoolName'=>setting('school_name','ICAS Philippines'),'faqs'=>array_merge($defaults,$published)],JSON_THROW_ON_ERROR);
+echo json_encode(['schoolName'=>setting('school_name','ICAS Philippines'),'faqs'=>array_merge(assistant_school_faqs(),$defaults,$published)],JSON_THROW_ON_ERROR);
