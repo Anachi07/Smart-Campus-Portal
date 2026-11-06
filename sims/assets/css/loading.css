@@ -1,0 +1,5 @@
+.campus-loader{position:fixed;inset:0;z-index:6000;display:grid;place-items:center;background:#fbfaf6;pointer-events:none;opacity:1;transition:opacity .16s ease-out}
+.campus-loader-inner{text-align:center;padding:24px}.campus-loader img{display:block;width:110px;height:110px;object-fit:contain;margin:auto;animation:campus-logo-pulse 1.25s ease-in-out infinite alternate}.campus-loader p{margin:14px 0 0;color:#17432a;font:600 13px/1.5 system-ui;letter-spacing:.08em}.campus-loader.is-ready{opacity:0}
+@keyframes campus-logo-pulse{from{opacity:.5;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.campus-loader{transition:none}.campus-loader img{animation:none}}
+@media print{.campus-loader{display:none!important}}

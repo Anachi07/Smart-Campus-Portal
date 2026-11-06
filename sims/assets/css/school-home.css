@@ -35,3 +35,7 @@
 .school-admission-notice{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:48px;padding-block:40px;border-bottom:1px solid #d7ded5}
 .school-admission-notice p:not(.school-label){line-height:1.8;margin:0 0 16px;color:#536354}
 @media(max-width:640px){.school-admission-notice{grid-template-columns:minmax(0,1fr);gap:20px;padding-block:32px}}
+.school-photo-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.school-photo-gallery figure{margin:0;min-width:0}.school-photo-gallery img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;background:#eeeee5}.school-photo-gallery figcaption{font-size:13px;color:#536354;padding-top:12px;overflow-wrap:anywhere}
+@media(max-width:640px){.school-photo-gallery{grid-template-columns:minmax(0,1fr);gap:26px}.school-photo-gallery img{aspect-ratio:auto}}
+.school-identity .school-campus-hero{max-height:420px;object-fit:contain}.school-identity.has-campus-photo{padding:0}.school-identity.has-campus-photo>div{padding-block:15px}
+@media(max-width:640px){.school-identity.has-campus-photo{display:block}.school-identity.has-campus-photo>img{width:100%;max-height:420px}.school-identity.has-campus-photo>div{border-left:0;padding-left:0}}
