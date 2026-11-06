@@ -17,8 +17,22 @@ function public_school_fields(): array {
         'school_office_hours'=>['Office hours',300,'textarea',''],
         'school_hrs_name'=>['Full program name for HRS',120,'text',''],
         'school_it_name'=>['Full program name for IT',120,'text',''],
+        'school_admissions_status'=>['Enrollment information status',9,'select','Draft'],
+        'school_admissions_new'=>['New student requirements (one per line)',3000,'textarea',''],
+        'school_admissions_transferee'=>['Transferee requirements (one per line)',3000,'textarea',''],
+        'school_admissions_steps'=>['Enrollment steps (one per line, in order)',4000,'textarea',''],
+        'school_admissions_notes'=>['Enrollment notes',1500,'textarea',''],
     ];
 }
 function public_school_url(string $url): string {
     return filter_var($url,FILTER_VALIDATE_URL)&&strtolower((string)parse_url($url,PHP_URL_SCHEME))==='https'&&!parse_url($url,PHP_URL_USER)&&!parse_url($url,PHP_URL_PASS)?$url:'';
+}
+
+function public_school_lines(string $text): array {
+    return array_values(array_filter(array_map('trim',preg_split('/\r\n|\r|\n/',$text)),fn($line)=>$line!==''));
+}
+function public_admissions_ready(array $school): bool {
+    return ($school['school_admissions_status']??'Draft')==='Published'
+        && public_school_lines($school['school_admissions_steps']??'')
+        && (public_school_lines($school['school_admissions_new']??'')||public_school_lines($school['school_admissions_transferee']??''));
 }

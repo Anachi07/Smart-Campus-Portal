@@ -17,6 +17,8 @@ The public homepage presents **Infotech College of Arts and Sciences (ICAS), Suc
 - Atomic queue writes, corruption detection, CSRF checks, login throttling, private-file protection, and security headers.
 - [School feedback surveys](SURVEYS.md): targeted audiences, rating/choice/text questions, one submission per account, anonymous or identified privacy, and staff-only results.
 
+- [Public enrollment information](ADMISSIONS.md): admin-reviewed requirements and enrollment steps, with private drafts and explicit publishing to the homepage.
+
 ## Run locally
 
 Requires .NET 8 SDK, PHP 8.2+ with PDO/SQLite, and Node.js 18+.

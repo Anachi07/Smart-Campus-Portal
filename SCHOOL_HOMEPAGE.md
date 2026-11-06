@@ -12,6 +12,10 @@ Settings accept plain text, render escaped HTML, validate email and HTTPS URLs, 
 
 The homepage automatically adapts to the screen width. The manual Accessibility menu, standalone toolbar row and green top strip are removed. Native browser zoom and device display preferences remain available. The header contains the single primary portal sign-in button; the repeated green sign-in section is removed. The school assistant, public queue link in the footer and install controls remain available. Install controls appear in the public footer; their placement on signed-in pages is unchanged. The homepage and private pages are not added to the offline cache.
 
+## Public enrollment information
+
+School settings also offers reviewed enrollment requirements for new students/transferees and ordered enrollment steps, with explicit Draft/Published status. Drafts remain absent from the public page. Read [ADMISSIONS.md](ADMISSIONS.md) for publishing instructions and limits.
+
 ## Verification
 
 PHP syntax checks, desktop/mobile screenshots, existing browser navigation checks and accessibility checks cover the new page. The public-settings integration test requires disposable data and restores its initial paired backup:

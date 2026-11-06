@@ -23,3 +23,12 @@
 .school-home .school-identity p{font-size:20px;line-height:1.35;letter-spacing:0}
 .school-home .school-footer{border-top:1px solid #d7ded5}
 @media(max-width:640px){.school-home .school-identity p{font-size:16px}}
+.school-enrollment{padding-block:64px;background:#eeeee5;border-block:1px solid #d7ded5}
+.school-requirements{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;margin-block:32px}
+.school-enrollment h3{font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:400;margin:0 0 18px}
+.school-enrollment ul,.school-enrollment ol{padding-left:22px;margin:0}
+.school-enrollment li{padding:6px 0 6px 8px;line-height:1.8;overflow-wrap:anywhere}
+.school-enrollment li::marker{color:#365e44;font-weight:600}
+.school-enrollment-steps{padding-top:28px;border-top:1px solid #b7c4b6;margin-bottom:28px}
+.school-enrollment-notes{margin-block:28px}.school-enrollment-notes p{line-height:1.8}
+@media(max-width:640px){.school-enrollment{padding-block:42px}.school-requirements{grid-template-columns:minmax(0,1fr);gap:30px}.school-enrollment h3{font-size:23px}.school-enrollment li{font-size:14px}}
