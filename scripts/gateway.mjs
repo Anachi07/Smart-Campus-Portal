@@ -6,6 +6,7 @@ const publicFiles = new Map([
   ['/offline.html', 'text/html; charset=utf-8'],
   ['/pwa/icon.svg', 'image/svg+xml'],
   ['/pwa/icon-192.png', 'image/png'],
+  ['/pwa/apple-touch-icon.png', 'image/png'],
   ['/pwa/icon-512.png', 'image/png'],
   ['/pwa/pwa.js', 'application/javascript'],
   ['/pwa/pwa.css', 'text/css'],
